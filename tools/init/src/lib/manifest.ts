@@ -81,3 +81,42 @@ export function createEmptyManifest(methodology: string, bundle: string, version
     processes: {},
   };
 }
+
+export async function updateSkillInManifest(
+  projectRoot: string,
+  skillName: string,
+  newChecksum: string,
+  newVersion: string
+): Promise<void> {
+  const manifest = await readManifest(projectRoot);
+  if (!manifest) {
+    throw new Error('No manifest.yaml found');
+  }
+
+  if (manifest.skills[skillName]) {
+    manifest.skills[skillName].checksum = newChecksum;
+    manifest.skills[skillName].version = newVersion;
+    manifest.skills[skillName].modified = false;
+  }
+
+  await writeManifest(projectRoot, manifest);
+}
+
+export async function updateProcessInManifest(
+  projectRoot: string,
+  processName: string,
+  newChecksum: string,
+  newVersion: string
+): Promise<void> {
+  const manifest = await readManifest(projectRoot);
+  if (!manifest) {
+    throw new Error('No manifest.yaml found');
+  }
+
+  if (manifest.processes[processName]) {
+    manifest.processes[processName].checksum = newChecksum;
+    manifest.processes[processName].version = newVersion;
+  }
+
+  await writeManifest(projectRoot, manifest);
+}

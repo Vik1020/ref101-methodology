@@ -9,6 +9,7 @@
 import { Command } from 'commander';
 import { initCommand } from './commands/init.js';
 import { statusCommand } from './commands/status.js';
+import { updateCommand } from './commands/update.js';
 
 const program = new Command();
 
@@ -32,5 +33,17 @@ program
   .command('status')
   .description('Show current methodology status')
   .action(statusCommand);
+
+// Update subcommand
+program
+  .command('update')
+  .description('Update skills and processes from methodology source')
+  .option('--check', 'Check for available updates (default)')
+  .option('--skill <name>', 'Update specific skill')
+  .option('--process <name>', 'Update specific process')
+  .option('--all', 'Update all components')
+  .option('--skip-modified', 'Skip components with local changes')
+  .option('--force', 'Force update even with local changes')
+  .action(updateCommand);
 
 program.parse();
