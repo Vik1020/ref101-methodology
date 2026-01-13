@@ -1,0 +1,108 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://ref101-specs.dev/schemas/process-definition.json",
+  "title": "Process Definition",
+  "description": "Schema for workflow process definitions in ref101-specs",
+  "type": "object",
+  "required": ["process_id", "version", "name", "phases"],
+  "properties": {
+    "process_id": {
+      "type": "string",
+      "description": "Unique identifier for the process",
+      "pattern": "^[a-z_]+$"
+    },
+    "version": {
+      "type": "string",
+      "description": "Semantic version of the process definition",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "name": {
+      "type": "string",
+      "description": "Human-readable name of the process"
+    },
+    "description": {
+      "type": "string",
+      "description": "Detailed description of the process and its use cases"
+    },
+    "type": {
+      "type": "string",
+      "description": "Process type classification",
+      "enum": ["feature_development", "bugfix", "refactoring", "documentation", "research", "hotfix"]
+    },
+    "phases": {
+      "type": "array",
+      "description": "Ordered list of workflow phases",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Phase identifier",
+            "enum": [
+              "RELEASE",
+              "BC_delta",
+              "AC_delta",
+              "PLAN_FINALIZE",
+              "PC",
+              "IC",
+              "QA",
+              "APPLY_DELTAS",
+              "DEPLOY"
+            ]
+          },
+          "template": {
+            "type": "string",
+            "description": "Path to phase template file (relative to specifications/templates/phases/)",
+            "pattern": "^[A-Z_]+\\.md$"
+          },
+          "validators": {
+            "type": "array",
+            "description": "List of validator IDs to run for this phase",
+            "items": {
+              "type": "string"
+            }
+          },
+          "approval": {
+            "type": "object",
+            "description": "Approval requirements for this phase",
+            "properties": {
+              "required": {
+                "type": "boolean",
+                "description": "Whether approval is required to exit this phase"
+              },
+              "role": {
+                "type": "string",
+                "description": "Role that must approve (e.g., product_owner, tech_lead, qa_lead)"
+              }
+            },
+            "required": ["required", "role"]
+          },
+          "skip_allowed": {
+            "type": "boolean",
+            "description": "Whether this phase can be skipped",
+            "default": false
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "nodes": {
+      "type": "object",
+      "description": "Node dependencies with semver constraints. Keys are namespace:node-id format.",
+      "additionalProperties": {
+        "type": "string",
+        "description": "Semver range constraint (e.g., ^1.0.0, ~2.0.0, >=1.0.0)",
+        "pattern": "^([\\^~>=<]?\\d+\\.\\d+\\.\\d+|\\*|latest)$"
+      },
+      "examples": [
+        {
+          "sccu:workflow-engine": "^1.0.0",
+          "sccu:workflow-mcp-server": "^2.0.0"
+        }
+      ]
+    }
+  },
+  "additionalProperties": false
+}

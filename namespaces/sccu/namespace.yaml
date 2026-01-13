@@ -1,0 +1,71 @@
+# SCCU Namespace Definition
+namespace_id: sccu
+version: "1.0.0"
+name: "Self-Contained Context Unit"
+description: |
+  SCCU is a methodology for building traceable, modular applications.
+  Every line of code links to Business Goals (BC) and Analytical Contracts (AC).
+
+  Key principles:
+  - Layers of Truth: BC -> AC -> PC -> IC
+  - Living Documentation: Delta-based updates to domain files
+  - Workflow Enforcement: Phase-based development with validators
+
+phases:
+  - RELEASE
+  - BC_DELTA
+  - AC_DELTA
+  - PLAN_FINALIZE
+  - PC_CONTEXT
+  - IC
+  - QA_TESTING
+
+bundles:
+  minimal:
+    path: bundles/minimal.yaml
+    description: "Basic workflow support"
+    nodes:
+      - workflow-engine
+      - workflow-mcp-server
+      - workflow-skills-release
+
+  standard:
+    path: bundles/standard.yaml
+    description: "Full SCCU methodology"
+    nodes:
+      - workflow-engine
+      - workflow-phase-templates
+      - workflow-process-definitions
+      - workflow-mcp-server
+      - workflow-skills-release
+      - workflow-skills-utility
+      - architecture-domains
+      - release-artifacts
+
+  enterprise:
+    path: bundles/enterprise.yaml
+    description: "Minimal core for enterprise projects"
+    nodes:
+      - workflow-engine
+      - workflow-phase-templates
+      - workflow-process-definitions
+      - workflow-mcp-server
+      - workflow-skills-release
+      - release-artifacts
+
+  full:
+    path: bundles/full.yaml
+    description: "All nodes including design system"
+    nodes:
+      - all
+
+skills:
+  - hotfix
+  - new-feature
+  - new-release-auto
+  - save-to-backlog
+
+processes:
+  - feature_full
+  - feature_full_auto
+  - bugfix_simple

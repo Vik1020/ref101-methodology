@@ -1,0 +1,32 @@
+# ref101-methodology Manifest
+# SSOT for methodology configuration
+version: "1.0.0"
+type: methodology-monorepo
+created_at: "2026-01-13"
+
+namespaces:
+  sccu:
+    version: "1.0.0"
+    path: namespaces/sccu/
+    description: "Self-Contained Context Unit - traceable development methodology"
+    bundles:
+      - minimal
+      - standard
+      - enterprise
+      - full
+
+core_files:
+  - path: core/SYSTEM_PROMPT.md
+    description: "Main instruction for developers and LLM"
+  - path: core/WORKFLOW.md
+    description: "8-phase workflow definition"
+  - path: core/GLOSSARY.md
+    description: "Terms: BC, AC, PC, IC, CCC, PA"
+  - path: core/QUICK_REFERENCE.md
+    description: "P0 rules and checklist"
+
+tools:
+  init:
+    path: tools/init/
+    command: npx @ref101/init
+    description: "Initialize project with methodology"

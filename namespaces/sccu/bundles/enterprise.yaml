@@ -1,0 +1,45 @@
+# SCCU Enterprise Bundle
+bundle_id: sccu-enterprise
+methodology: sccu
+version: "1.0.0"
+description: "Minimal core for enterprise projects - no utility skills, no architecture-domains"
+
+includes:
+  skills:
+    - hotfix
+    - new-feature
+    - new-release-auto
+
+  processes:
+    - feature_full
+    - feature_full_auto
+    - bugfix_simple
+
+  templates:
+    phases:
+      - RELEASE_TEMPLATE.md
+      - BC_DELTA_TEMPLATE.md
+      - AC_DELTA_TEMPLATE.md
+      - PLAN_FINALIZE_TEMPLATE.md
+      - PC_CONTEXT_TEMPLATE.md
+      - IC_TEMPLATE.md
+      - QA_TESTING_TEMPLATE.md
+    domains:
+      - BC_DOMAIN_TEMPLATE.md
+      - AC_DOMAIN_TEMPLATE.md
+
+  nodes:
+    - workflow-engine
+    - workflow-phase-templates
+    - workflow-process-definitions
+    - workflow-mcp-server
+    - workflow-skills-release
+    - release-artifacts
+
+excludes:
+  skills:
+    - save-to-backlog  # Projects create their own
+  nodes:
+    - workflow-skills-utility
+    - architecture-domains  # Projects create their own
+    - design-tokens

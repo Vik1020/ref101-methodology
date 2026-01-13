@@ -1,0 +1,21 @@
+# SCCU Minimal Bundle
+bundle_id: sccu-minimal
+methodology: sccu
+version: "1.0.0"
+description: "Basic workflow support - engine, MCP server, release skills"
+
+includes:
+  skills:
+    - hotfix
+    - new-feature
+    - new-release-auto
+
+  processes:
+    - feature_full
+    - feature_full_auto
+    - bugfix_simple
+
+  nodes:
+    - workflow-engine
+    - workflow-mcp-server
+    - workflow-skills-release

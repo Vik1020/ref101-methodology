@@ -1,0 +1,40 @@
+# SCCU Standard Bundle
+bundle_id: sccu-standard
+methodology: sccu
+version: "1.0.0"
+description: "Full SCCU methodology with all components"
+
+includes:
+  skills:
+    - hotfix
+    - new-feature
+    - new-release-auto
+    - save-to-backlog
+
+  processes:
+    - feature_full
+    - feature_full_auto
+    - bugfix_simple
+
+  templates:
+    phases:
+      - RELEASE_TEMPLATE.md
+      - BC_DELTA_TEMPLATE.md
+      - AC_DELTA_TEMPLATE.md
+      - PLAN_FINALIZE_TEMPLATE.md
+      - PC_CONTEXT_TEMPLATE.md
+      - IC_TEMPLATE.md
+      - QA_TESTING_TEMPLATE.md
+    domains:
+      - BC_DOMAIN_TEMPLATE.md
+      - AC_DOMAIN_TEMPLATE.md
+
+  nodes:
+    - workflow-engine
+    - workflow-phase-templates
+    - workflow-process-definitions
+    - workflow-mcp-server
+    - workflow-skills-release
+    - workflow-skills-utility
+    - architecture-domains
+    - release-artifacts
