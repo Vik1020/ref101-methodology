@@ -10,6 +10,7 @@ import { Command } from 'commander';
 import { initCommand } from './commands/init.js';
 import { statusCommand } from './commands/status.js';
 import { updateCommand } from './commands/update.js';
+import { migrateCommand } from './commands/migrate.js';
 
 const program = new Command();
 
@@ -45,5 +46,12 @@ program
   .option('--skip-modified', 'Skip components with local changes')
   .option('--force', 'Force update even with local changes')
   .action(updateCommand);
+
+// Migrate subcommand
+program
+  .command('migrate')
+  .description('Migrate from symlinks to copy-on-init approach')
+  .option('--preview', 'Show what would be migrated without making changes')
+  .action((options) => migrateCommand({ dryRun: options.preview }));
 
 program.parse();
