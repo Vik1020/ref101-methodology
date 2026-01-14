@@ -11,6 +11,7 @@ import { initCommand } from './commands/init.js';
 import { statusCommand } from './commands/status.js';
 import { updateCommand } from './commands/update.js';
 import { migrateCommand } from './commands/migrate.js';
+import { createMethodologyCommand } from './commands/methodology/index.js';
 
 const program = new Command();
 
@@ -53,5 +54,8 @@ program
   .description('Migrate from symlinks to copy-on-init approach')
   .option('--preview', 'Show what would be migrated without making changes')
   .action((options) => migrateCommand({ dryRun: options.preview }));
+
+// Methodology subcommand group
+program.addCommand(createMethodologyCommand());
 
 program.parse();

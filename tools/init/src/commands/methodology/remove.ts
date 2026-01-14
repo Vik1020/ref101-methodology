@@ -1,0 +1,119 @@
+/**
+ * Remove command
+ * Remove installed skills or processes
+ */
+
+import fs from 'fs/promises';
+import path from 'path';
+import chalk from 'chalk';
+import { readManifest, writeManifest } from '../../lib/manifest.js';
+import { dirExists, fileExists } from '../../lib/copier.js';
+
+interface RemoveOptions {
+  all?: boolean;
+}
+
+export async function removeCommand(
+  id: string,
+  options: RemoveOptions
+): Promise<void> {
+  const projectRoot = process.cwd();
+  const manifest = await readManifest(projectRoot);
+
+  if (!manifest) {
+    console.log(chalk.red('No manifest.yaml found.'));
+    process.exit(1);
+  }
+
+  if (options.all) {
+    await removeAll(projectRoot, manifest);
+    return;
+  }
+
+  // Check if it's a skill
+  if (manifest.skills[id]) {
+    await removeSkill(projectRoot, manifest, id);
+    return;
+  }
+
+  // Check if it's a process
+  if (manifest.processes[id]) {
+    await removeProcess(projectRoot, manifest, id);
+    return;
+  }
+
+  console.log(chalk.red(`Not found: ${id}`));
+  console.log(chalk.yellow('Use "methodology status" to see installed components.'));
+  process.exit(1);
+}
+
+async function removeSkill(
+  projectRoot: string,
+  manifest: any,
+  skillId: string
+): Promise<void> {
+  const skillPath = path.join(projectRoot, '.claude', 'skills', skillId);
+
+  // Remove directory
+  if (await dirExists(skillPath)) {
+    await fs.rm(skillPath, { recursive: true, force: true });
+  }
+
+  // Update manifest
+  delete manifest.skills[skillId];
+  await writeManifest(projectRoot, manifest);
+
+  console.log(chalk.green(`✓ Removed ${skillId}`));
+}
+
+async function removeProcess(
+  projectRoot: string,
+  manifest: any,
+  processId: string
+): Promise<void> {
+  const processPath = path.join(projectRoot, 'processes', processId + '.json');
+
+  // Remove file
+  if (await fileExists(processPath)) {
+    await fs.rm(processPath);
+  }
+
+  // Update manifest
+  delete manifest.processes[processId];
+  await writeManifest(projectRoot, manifest);
+
+  console.log(chalk.green(`✓ Removed ${processId}`));
+}
+
+async function removeAll(
+  projectRoot: string,
+  manifest: any
+): Promise<void> {
+  let removed = 0;
+
+  // Remove all skills
+  for (const skillId of Object.keys(manifest.skills || {})) {
+    const skillPath = path.join(projectRoot, '.claude', 'skills', skillId);
+    if (await dirExists(skillPath)) {
+      await fs.rm(skillPath, { recursive: true, force: true });
+    }
+    delete manifest.skills[skillId];
+    removed++;
+    console.log(chalk.green(`✓ Removed skill: ${skillId}`));
+  }
+
+  // Remove all processes
+  for (const processId of Object.keys(manifest.processes || {})) {
+    const processPath = path.join(projectRoot, 'processes', processId + '.json');
+    if (await fileExists(processPath)) {
+      await fs.rm(processPath);
+    }
+    delete manifest.processes[processId];
+    removed++;
+    console.log(chalk.green(`✓ Removed process: ${processId}`));
+  }
+
+  await writeManifest(projectRoot, manifest);
+
+  console.log(chalk.blue(`\nRemoved ${removed} components`));
+}
