@@ -116,4 +116,34 @@ async function removeAll(
   await writeManifest(projectRoot, manifest);
 
   console.log(chalk.blue(`\nRemoved ${removed} components`));
+
+  // Cleanup when all components removed
+  if (Object.keys(manifest.skills || {}).length === 0 &&
+      Object.keys(manifest.processes || {}).length === 0) {
+
+    // Remove .mcp.json
+    const mcpPath = path.join(projectRoot, '.mcp.json');
+    if (await fileExists(mcpPath)) {
+      await fs.rm(mcpPath);
+      console.log(chalk.green('✓ Removed .mcp.json'));
+    }
+
+    // Update CLAUDE.md - clear skills/processes sections
+    const claudeMdPath = path.join(projectRoot, 'CLAUDE.md');
+    if (await fileExists(claudeMdPath)) {
+      let content = await fs.readFile(claudeMdPath, 'utf-8');
+      // Replace skills section
+      content = content.replace(
+        /### Available Skills\n\n[\s\S]*?(?=\n###|\n##|$)/,
+        '### Available Skills\n\n_No skills installed_\n'
+      );
+      // Replace processes section
+      content = content.replace(
+        /### Processes\n\n[\s\S]*?(?=\n###|\n##|$)/,
+        '### Processes\n\n_No processes installed_\n'
+      );
+      await fs.writeFile(claudeMdPath, content, 'utf-8');
+      console.log(chalk.green('✓ Updated CLAUDE.md'));
+    }
+  }
 }
