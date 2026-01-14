@@ -145,5 +145,12 @@ async function removeAll(
       await fs.writeFile(claudeMdPath, content, 'utf-8');
       console.log(chalk.green('✓ Updated CLAUDE.md'));
     }
+
+    // Remove manifest.yaml for complete de-initialization
+    const manifestPath = path.join(projectRoot, 'manifest.yaml');
+    if (await fileExists(manifestPath)) {
+      await fs.rm(manifestPath);
+      console.log(chalk.green('✓ Removed manifest.yaml'));
+    }
   }
 }
