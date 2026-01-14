@@ -1,0 +1,641 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# node-templates.yaml - Abstract Node Template Definitions
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+# Templates define WHAT a node should have, without binding to specific projects.
+# Instances (in node-instances.yaml) bind templates to actual projects.
+#
+# Template Structure:
+#   - name, description, coupling (from nodes.yaml)
+#   - ssot_pattern: glob pattern for SSOT file
+#   - provider_requirements: what a provider project must have
+#   - consumer_requirements: what a consumer project must have
+#   - rules: validation rules with type (script/semantic)
+#
+# @see node-instances.yaml for project bindings
+# @since v1.70.0
+# @updated v1.71.0 - Added canonical_repository for each template
+# @updated v1.76.0 - Renamed templates for descriptive naming
+# ═══════════════════════════════════════════════════════════════════════════════
+
+version: "1.3.0"
+
+templates:
+  # ═══════════════════════════════════════════════════════════════════════════
+  # WORKFLOW CATEGORY - Core workflow orchestration
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  # ---------------------------------------------------------------------------
+  # Workflow Engine Template
+  # Core state machine for release lifecycle management
+  # ---------------------------------------------------------------------------
+  workflow-engine:
+    name: Workflow Engine
+    description: Core state machine for release lifecycle management
+    coupling: structural
+
+    # Canonical repository - where workflow engine is implemented (SSOT)
+    canonical_repository: ref101-pcc
+    canonical_role: provider
+
+    ssot_pattern: "**/workflow/transitions.ts"
+
+    depends_on: []  # Root dependency
+
+    provider_requirements:
+      - id: transitions-file
+        type: file
+        pattern: "packages/core/src/workflow/transitions.ts"
+        description: "Workflow transitions definition"
+
+      - id: validators-file
+        type: file
+        pattern: "packages/core/src/workflow/validators.ts"
+        description: "Precondition validators"
+
+      - id: workflow-state
+        type: file
+        pattern: "packages/core/src/models/WorkflowState.ts"
+        description: "WorkflowState model"
+
+    consumer_requirements:
+      - id: pcc-dependency
+        type: package
+        pattern: "@ref101/pcc"
+        description: "PCC core package dependency"
+        optional: true  # v1.80.1: Not all consumers have PCC as npm dependency
+
+    rules:
+      - id: validator-implementation
+        type: script
+        description: "All validators in transitions.ts have implementation"
+        severity: error
+        applies_to: provider
+        check: |
+          cd {project_root} && grep -l "export function" packages/core/src/workflow/validators.ts | wc -l | grep -qv "^0$"
+
+      - id: no-orphan-validators
+        type: script
+        description: "All implemented validators are used in transitions or templates"
+        severity: warning
+        applies_to: provider
+        check: |
+          cd {project_root} && test -f packages/core/src/workflow/validators.ts
+
+      - id: phase-order-match
+        type: semantic
+        description: "PHASE_ORDER matches phases in templates"
+        prompt: |
+          Compare PHASE_ORDER array in WorkflowState.ts with phases defined
+          in templates/phases/*_TEMPLATE.md frontmatter.
+        severity: warning
+        applies_to: provider
+
+  # ---------------------------------------------------------------------------
+  # Workflow Phase Templates
+  # SSOT for phase behavior, validators, and transitions
+  # ---------------------------------------------------------------------------
+  workflow-phase-templates:
+    name: Workflow Phase Templates
+    description: SSOT for phase behavior, validators, and transitions
+    coupling: structural
+
+    # Canonical repository - where phase templates are defined (SSOT)
+    canonical_repository: ref101-specs
+    canonical_role: provider
+
+    ssot_pattern: "templates/phases/*_TEMPLATE.md"
+
+    depends_on:
+      - workflow-engine
+
+    provider_requirements:
+      - id: templates-directory
+        type: directory
+        pattern: "templates/phases"
+        description: "Phase templates directory"
+
+    consumer_requirements: []  # Usually accessed via submodule
+
+    rules:
+      - id: template-has-phase
+        type: script
+        description: "All templates declare a phase in frontmatter"
+        severity: error
+        applies_to: provider
+        check: |
+          cd {project_root} && find templates/phases -name "*_TEMPLATE.md" -exec grep -l "^phase:" {} \; | wc -l | grep -qv "^0$"
+
+      - id: template-has-transition
+        type: script
+        description: "All templates define transition with next_phase"
+        severity: error
+        applies_to: provider
+        check: |
+          cd {project_root} && find templates/phases -name "*_TEMPLATE.md" -exec grep -l "next_phase:" {} \; | wc -l | grep -qv "^0$"
+
+      - id: validator-ids-valid
+        type: script
+        description: "All validator IDs in templates exist in validators.ts"
+        severity: error
+        applies_to: provider
+        check: |
+          cd {project_root} && test -d templates/phases
+
+  # ---------------------------------------------------------------------------
+  # Workflow Process Definitions
+  # Composable workflow process configurations
+  # ---------------------------------------------------------------------------
+  workflow-process-definitions:
+    name: Workflow Process Definitions
+    description: Composable workflow process configurations
+    coupling: structural
+
+    # Canonical repository - where processes are defined (SSOT)
+    canonical_repository: ref101-specs
+    canonical_role: provider
+
+    ssot_pattern: "processes/*.json"
+
+    depends_on:
+      - workflow-phase-templates
+      - workflow-engine
+
+    provider_requirements:
+      - id: processes-directory
+        type: directory
+        pattern: "processes"
+        description: "Processes directory with JSON definitions"
+
+      - id: process-schema
+        type: file
+        pattern: "processes/process.schema.json"
+        description: "JSON Schema for process validation"
+
+    consumer_requirements:
+      - id: processes-symlink
+        type: symlink
+        pattern: "processes"
+        target_pattern: "**/ref101-specs/processes"
+        description: "Symlink to processes SSOT (optional - can use submodule)"
+        optional: true
+
+    rules:
+      - id: process-has-phases
+        type: script
+        description: "All processes have at least one phase"
+        severity: error
+        applies_to: provider
+        follow_symlink: true
+        check: |
+          cd {project_root} && find processes -name "*.json" ! -name "*.schema.json" -exec grep -l '"phases"' {} \; | wc -l | grep -qv "^0$"
+
+      - id: template-exists
+        type: script
+        description: "All phases[].template files exist"
+        severity: error
+        applies_to: provider
+        follow_symlink: true
+        check: |
+          cd {project_root} && test -d processes
+
+      - id: process-id-unique
+        type: script
+        description: "Each process file has unique process_id"
+        severity: error
+        applies_to: provider
+        follow_symlink: true
+        check: |
+          cd {project_root} && find processes -name "*.json" ! -name "*.schema.json" | wc -l | grep -qv "^0$"
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # AUTOMATION CATEGORY - LLM automation and MCP tooling
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  # ---------------------------------------------------------------------------
+  # Workflow MCP Server
+  # Model Context Protocol server for programmatic workflow enforcement
+  # ---------------------------------------------------------------------------
+  workflow-mcp-server:
+    name: Workflow MCP Server
+    description: Model Context Protocol server for programmatic workflow enforcement
+    coupling: structural
+
+    # Canonical repository - where the template is implemented (SSOT)
+    canonical_repository: ref101-pcc
+    canonical_role: provider
+
+    # SSOT pattern (glob) - provider must have this
+    ssot_pattern: "**/mcp/**/tools.ts"
+
+    # Dependencies on other templates (synced with nodes.yaml)
+    depends_on:
+      - workflow-engine
+
+    # What a PROVIDER project must have
+    provider_requirements:
+      - id: mcp-server-source
+        type: file
+        pattern: "packages/mcp/src/server.ts"
+        description: "MCP server source file"
+
+      - id: mcp-tools-definition
+        type: file
+        pattern: "packages/mcp/src/tools.ts"
+        description: "MCP tools definition (SSOT)"
+
+      - id: mcp-handlers
+        type: directory
+        pattern: "packages/mcp/src/handlers"
+        description: "MCP handlers directory"
+
+      - id: mcp-dist
+        type: file
+        pattern: "packages/mcp/dist/server.js"
+        description: "Compiled MCP server (must run npm run build)"
+
+    # What a CONSUMER project must have
+    consumer_requirements:
+      - id: mcp-config
+        type: file
+        pattern: ".mcp.json"
+        description: "MCP configuration file pointing to provider's server"
+        content_check:
+          type: json
+          required_keys:
+            - mcpServers.pcc.command
+            - mcpServers.pcc.args
+
+      - id: tools-symlink
+        type: symlink
+        pattern: "tools"
+        target_pattern: "**/ref101-specs/tools"
+        description: "Symlink to observability tools (for start-exploration.sh)"
+        optional: true  # v1.80.1: Not all consumers need tools symlink
+
+    # Validation rules
+    rules:
+      - id: mcp-server-accessible
+        type: script
+        description: "MCP server can be started without errors"
+        check: |
+          cd {project_root} && timeout 2 node packages/mcp/dist/server.js < /dev/null 2>&1 | grep -q "PCC MCP Server started"
+        severity: error
+        applies_to: provider
+
+      - id: handler-exists
+        type: script
+        description: "Each PCC_TOOL has a corresponding handler file"
+        severity: error
+        applies_to: provider
+        check: |
+          cd {project_root} && test -d packages/mcp/src/handlers && ls packages/mcp/src/handlers/*.ts 2>/dev/null | wc -l | grep -qv "^0$"
+
+      - id: mcp-json-valid
+        type: script
+        description: "MCP config is valid JSON with correct structure"
+        check: |
+          cd {project_root} && node -e "const c = require('./.mcp.json'); if (!c.mcpServers?.pcc) throw new Error('Missing pcc server')"
+        severity: error
+        applies_to: consumer
+
+      - id: mcp-server-path-exists
+        type: script
+        description: "MCP server path in .mcp.json actually exists"
+        severity: error
+        applies_to: consumer
+        check: |
+          cd {project_root} && node -e "const c = require('./.mcp.json'); const p = c.mcpServers?.pcc?.args?.[0]; require('fs').accessSync(p)"
+
+      - id: tools-consistent
+        type: semantic
+        description: "MCP tools in SKILL.md match PCC_TOOLS definitions"
+        prompt: |
+          Compare the MCP tools referenced in SKILL.md files with PCC_TOOLS in tools.ts.
+          Check that all referenced tools exist and have correct signatures.
+        context:
+          - ".claude/skills/*/SKILL.md"
+          - "packages/mcp/src/tools.ts"
+        severity: warning
+        applies_to: provider
+
+  # ---------------------------------------------------------------------------
+  # Workflow Automation Skills
+  # LLM-executable workflow automation skills
+  # ---------------------------------------------------------------------------
+  workflow-automation-skills:
+    name: Workflow Automation Skills
+    description: LLM-executable workflow automation skills
+    coupling: semantic
+
+    # Canonical repository - where skills are defined (SSOT)
+    canonical_repository: ref101-specs
+    canonical_role: provider
+
+    ssot_pattern: ".claude/skills/*/SKILL.md"
+
+    # Dependencies on other templates
+    depends_on:
+      - workflow-mcp-server
+      - workflow-process-definitions
+
+    provider_requirements:
+      - id: skills-directory
+        type: directory
+        pattern: ".claude/skills"
+        description: "Skills directory with SKILL.md files"
+
+      - id: skill-readme
+        type: file
+        pattern: ".claude/skills/README.md"
+        description: "Skills documentation"
+        optional: true  # v1.80.1: README is optional
+
+    consumer_requirements:
+      - id: skills-symlink
+        type: symlink
+        pattern: ".claude/skills"
+        target_pattern: "**/ref101-specs/.claude/skills"
+        description: "Symlink to skills SSOT"
+
+    rules:
+      - id: skill-has-frontmatter
+        type: script
+        description: "All SKILL.md files have valid YAML frontmatter with name and description"
+        severity: error
+        applies_to: provider
+        follow_symlink: true  # v1.78.0: Consumer can validate via symlink
+        check: |
+          cd {project_root} && find .claude/skills -name "SKILL.md" -exec grep -l "^---" {} \; | wc -l | grep -qv "^0$"
+
+      - id: skill-has-instructions
+        type: script
+        description: "All SKILL.md must have Instructions section"
+        severity: warning
+        applies_to: provider
+        follow_symlink: true  # v1.78.0: Consumer can validate via symlink
+        check: |
+          cd {project_root} && find .claude/skills -name "SKILL.md" -exec grep -l "## Instructions\|# Instructions" {} \; | wc -l | grep -qv "^0$"
+
+      # mcp-tools-valid removed in v1.80.0 - this rule belongs to workflow-mcp-server template, not skills
+      # Skills provider (ref101-specs) doesn't have MCP implementation
+
+      - id: process-id-valid
+        type: semantic
+        description: "Process IDs in skills match available processes"
+        prompt: |
+          Check that process_id values in SKILL.md files (feature_full, bugfix_simple, etc.)
+          match the process definitions in processes/*.json
+        context:
+          - ".claude/skills/*/SKILL.md"
+          - "processes/*.json"
+        severity: warning
+        applies_to: provider
+
+      - id: symlink-target-valid
+        type: script
+        description: "Skills directory exists and is accessible (symlink or submodule)"
+        severity: error
+        applies_to: consumer
+        check: |
+          cd {project_root} && test -d .claude/skills
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # DOCUMENTATION CATEGORY - Living documentation and artifacts
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  # ---------------------------------------------------------------------------
+  # Architecture Domains
+  # Living documentation SSOT for business and analytical contexts
+  # ---------------------------------------------------------------------------
+  architecture-domains:
+    name: Architecture Domains
+    description: Living documentation for business and analytical contexts
+    coupling: semantic
+
+    # Canonical repository - where domain templates are defined
+    # Note: Each project has its own domains, but ref101-specs is the template SSOT
+    canonical_repository: ref101-specs
+    canonical_role: provider
+
+    ssot_pattern: "docs/domains/*_DOMAIN_*.md"
+
+    depends_on: []
+
+    provider_requirements:
+      - id: domains-directory
+        type: directory
+        pattern: "docs/domains"
+        description: "Domain documentation directory"
+
+      - id: bc-template
+        type: file
+        pattern: "templates/domains/BC_DOMAIN_TEMPLATE.md"
+        description: "BC domain template"
+        optional: true  # v1.80.1: Templates are optional, domains can exist without template
+
+      - id: ac-template
+        type: file
+        pattern: "templates/domains/AC_DOMAIN_TEMPLATE.md"
+        description: "AC domain template"
+        optional: true  # v1.80.1: Templates are optional
+
+    consumer_requirements: []  # Each project has own domains
+
+    rules:
+      - id: domain-has-frontmatter
+        type: script
+        description: "All domain files have valid YAML frontmatter"
+        severity: warning
+        applies_to: provider
+        check: |
+          cd {project_root} && find docs/domains -name "*_DOMAIN_*.md" -exec grep -l "^---" {} \; | wc -l | grep -qv "^0$"
+
+      - id: bc-ac-pair-exists
+        type: semantic
+        description: "Each BC domain should have corresponding AC domain"
+        prompt: |
+          Check that for each BC_DOMAIN_*.md file there is a corresponding AC_DOMAIN_*.md
+          with matching domain name.
+        severity: warning
+        applies_to: provider
+
+  # ---------------------------------------------------------------------------
+  # Release Artifacts
+  # Version-specific release documentation and state
+  # ---------------------------------------------------------------------------
+  release-artifacts:
+    name: Release Artifacts
+    description: Version-specific release documentation and artifacts
+    coupling: structural
+
+    # Canonical repository - where release artifacts pattern is defined
+    # Note: Each project has its own releases, but ref101-specs is the template SSOT
+    canonical_repository: ref101-specs
+    canonical_role: provider
+
+    ssot_pattern: ".pcc/releases/*.json"
+
+    depends_on:
+      - workflow-phase-templates
+
+    provider_requirements:
+      - id: pcc-directory
+        type: directory
+        pattern: ".pcc/releases"
+        description: "Release state files directory"
+
+      - id: releases-docs
+        type: directory
+        pattern: "docs/releases"
+        description: "Release documentation directory"
+
+    consumer_requirements: []  # Each project has own releases
+
+    rules:
+      - id: state-schema-valid
+        type: script
+        description: "State JSON has required fields"
+        severity: error
+        applies_to: provider
+        check: |
+          cd {project_root} && for f in .pcc/releases/*.json; do [ -f "$f" ] && node -e "JSON.parse(require('fs').readFileSync('$f'))" || exit 0; done
+
+      - id: state-dir-match
+        type: script
+        description: "Each state file has corresponding release directory"
+        severity: warning
+        applies_to: provider
+        check: |
+          cd {project_root} && test -d .pcc/releases && test -d docs/releases
+
+  # ---------------------------------------------------------------------------
+  # Node Creation Templates (v1.86.0)
+  # Templates for Workflow 1: Node Creation process
+  # ---------------------------------------------------------------------------
+  node-creation-templates:
+    name: Node Creation Templates
+    description: Templates for Workflow 1 node creation process
+    coupling: structural
+
+    # Canonical repository - where node creation templates are defined (SSOT)
+    canonical_repository: ref101-node-validators
+    canonical_role: provider
+
+    ssot_pattern: "templates/nodes/NODE_TEMPLATE.md"
+
+    depends_on: []
+
+    provider_requirements:
+      - id: node-template
+        type: file
+        pattern: "templates/nodes/NODE_TEMPLATE.md"
+        description: "Node definition template"
+
+      - id: install-template
+        type: file
+        pattern: "docs/installation/INSTALL_TEMPLATE.md"
+        description: "Installation guide template"
+
+    consumer_requirements: []  # This is a standalone template system
+
+    rules:
+      - id: node-template-exists
+        type: script
+        description: "NODE_TEMPLATE.md exists in templates/nodes/"
+        severity: error
+        applies_to: provider
+        check: |
+          cd {project_root} && test -f templates/nodes/NODE_TEMPLATE.md
+
+      - id: install-template-exists
+        type: script
+        description: "INSTALL_TEMPLATE.md exists in docs/installation/"
+        severity: error
+        applies_to: provider
+        check: |
+          cd {project_root} && test -f docs/installation/INSTALL_TEMPLATE.md
+
+      - id: template-has-frontmatter
+        type: script
+        description: "Both templates have valid YAML frontmatter"
+        severity: error
+        applies_to: provider
+        check: |
+          cd {project_root} && grep -l "^---" templates/nodes/NODE_TEMPLATE.md docs/installation/INSTALL_TEMPLATE.md | wc -l | grep -q "^2$"
+
+      - id: template-has-placeholders
+        type: script
+        description: "Templates contain [placeholder] markers for customization"
+        severity: warning
+        applies_to: provider
+        check: |
+          cd {project_root} && grep -l "\[.*\]" templates/nodes/NODE_TEMPLATE.md | wc -l | grep -qv "^0$"
+
+  # ---------------------------------------------------------------------------
+  # Design Tokens
+  # Design tokens and UI components configuration
+  # ---------------------------------------------------------------------------
+  design-tokens:
+    name: Design Tokens
+    description: W3C design tokens and provider configuration
+    coupling: structural
+
+    # Canonical repository - where design system is defined (SSOT)
+    canonical_repository: ref101-specs
+    canonical_role: provider
+
+    ssot_pattern: "design-system/config.json"
+
+    # Synced with nodes.yaml
+    depends_on:
+      - workflow-engine
+      - workflow-phase-templates
+      - workflow-mcp-server
+
+    provider_requirements:
+      - id: config-file
+        type: file
+        pattern: "design-system/config.json"
+        description: "Design system configuration"
+
+      - id: tokens-directory
+        type: directory
+        pattern: "design-system/tokens"
+        description: "Design tokens (W3C format)"
+
+    consumer_requirements: []
+
+    rules:
+      - id: provider-config-valid
+        type: script
+        description: "config.json has valid structure"
+        severity: error
+        applies_to: provider
+        check: |
+          cd {project_root} && node -e "JSON.parse(require('fs').readFileSync('design-system/config.json'))"
+
+      - id: tokens-w3c-format
+        type: script
+        description: "Token files follow W3C Design Tokens spec"
+        severity: error
+        applies_to: provider
+        check: |
+          cd {project_root} && test -d design-system/tokens
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# VALIDATION TYPE REFERENCE
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+# script:
+#   - Runs automatically via shell commands
+#   - check: shell command template ({project_root} replaced)
+#   - Returns pass/fail based on exit code
+#
+# semantic:
+#   - Requires LLM for validation
+#   - prompt: describes what to check
+#   - context: files to include in analysis
+#   - Can generate prompt for copy-paste or integrate with Claude API
+#
+# ═══════════════════════════════════════════════════════════════════════════════

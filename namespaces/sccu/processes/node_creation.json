@@ -1,0 +1,105 @@
+{
+  "process_id": "node_creation",
+  "version": "1.0.0",
+  "name": "Node Creation Workflow",
+  "type": "tooling",
+  "description": "Creates a new bounded context node with template, validator, and install documentation",
+  "nodes": [
+    "node-creation-templates",
+    "workflow-process-definitions",
+    "workflow-engine"
+  ],
+  "phases": [
+    {
+      "id": "RELEASE",
+      "description": "Initialize node creation release",
+      "template": null,
+      "validators": [],
+      "approval": false
+    },
+    {
+      "id": "NODE_DEFINITION",
+      "description": "Define node basics: id, name, coupling, ssot_pattern, canonical_project",
+      "template": "templates/nodes/NODE_TEMPLATE.md",
+      "validators": [
+        "node_has_id",
+        "node_has_name",
+        "node_has_coupling"
+      ],
+      "approval": false
+    },
+    {
+      "id": "PATTERN_DEFINITION",
+      "description": "Fill provider/consumer requirements in NODE_TEMPLATE",
+      "template": null,
+      "validators": [
+        "has_provider_requirements"
+      ],
+      "approval": false
+    },
+    {
+      "id": "RULES_DEFINITION",
+      "description": "Define validation rules in NODE_TEMPLATE",
+      "template": null,
+      "validators": [
+        "rules_have_severity",
+        "rules_have_type"
+      ],
+      "approval": false
+    },
+    {
+      "id": "VALIDATOR_IMPL",
+      "description": "Create {node-id}.validator.ts and register in index.ts",
+      "template": null,
+      "validators": [
+        "validator_file_exists",
+        "validator_registered"
+      ],
+      "approval": false
+    },
+    {
+      "id": "CONFIG_UPDATE",
+      "description": "Add node to nodes.yaml and node-templates.yaml",
+      "template": null,
+      "validators": [
+        "node_in_nodes_yaml",
+        "node_in_templates_yaml"
+      ],
+      "approval": false
+    },
+    {
+      "id": "INSTALL_DOC",
+      "description": "Create INSTALL_{node-id}.md from template",
+      "template": "docs/installation/INSTALL_TEMPLATE.md",
+      "validators": [
+        "install_doc_exists"
+      ],
+      "approval": false
+    },
+    {
+      "id": "VALIDATE",
+      "description": "Run make validate and verify all checks pass",
+      "template": null,
+      "validators": [
+        "make_validate_passes"
+      ],
+      "approval": true
+    }
+  ],
+  "artifacts": {
+    "NODE_DEFINITION": {
+      "output_pattern": "docs/releases/{version}/NODE_DEFINITION_{node_id}.md",
+      "source_template": "templates/nodes/NODE_TEMPLATE.md"
+    },
+    "INSTALL_DOC": {
+      "output_pattern": "docs/installation/INSTALL_{node_id}.md",
+      "source_template": "docs/installation/INSTALL_TEMPLATE.md"
+    }
+  },
+  "outputs": {
+    "validator": "packages/core/src/nodes/{node_id}.validator.ts",
+    "nodes_yaml": "config/nodes.yaml",
+    "node_templates_yaml": "config/node-templates.yaml",
+    "install_doc": "docs/installation/INSTALL_{node_id}.md"
+  }
+}

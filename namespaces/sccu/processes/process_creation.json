@@ -1,0 +1,64 @@
+{
+  "process_id": "process_creation",
+  "version": "1.0.0",
+  "name": "Business Process Creation",
+  "type": "tooling",
+  "description": "Creates a new business process with node planning. Defines which nodes to reuse from existing or create new.",
+  "nodes": [
+    "workflow-process-definitions",
+    "workflow-engine"
+  ],
+  "phases": [
+    {
+      "id": "RELEASE",
+      "description": "Initialize business process creation release",
+      "template": null,
+      "validators": [],
+      "approval": false
+    },
+    {
+      "id": "GOAL_DEFINITION",
+      "description": "Define business goal and required capabilities",
+      "template": "templates/processes/BUSINESS_PROCESS_TEMPLATE.md",
+      "validators": [
+        "bp_has_goal",
+        "bp_has_capabilities"
+      ],
+      "approval": false
+    },
+    {
+      "id": "NODE_PLANNING",
+      "description": "For each capability decide: reuse existing node or create new",
+      "template": null,
+      "validators": [
+        "np_all_nodes_decided"
+      ],
+      "approval": false
+    },
+    {
+      "id": "DRAFT_REVIEW",
+      "description": "Review complete business process draft",
+      "template": null,
+      "validators": [
+        "dr_has_outputs",
+        "dr_nodes_valid"
+      ],
+      "approval": true
+    },
+    {
+      "id": "VALIDATE",
+      "description": "Validate business process structure and save to processes/",
+      "template": null,
+      "validators": [
+        "bp_valid_json"
+      ],
+      "approval": false
+    }
+  ],
+  "artifacts": {
+    "BUSINESS_PROCESS": {
+      "output_pattern": "processes/{process_id}.json",
+      "source_template": "templates/processes/BUSINESS_PROCESS_TEMPLATE.md"
+    }
+  }
+}

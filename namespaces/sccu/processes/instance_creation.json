@@ -1,0 +1,63 @@
+{
+  "process_id": "instance_creation",
+  "version": "1.0.0",
+  "name": "Node Instance Creation",
+  "type": "tooling",
+  "description": "Connects existing node templates to projects by creating instances in node-instances.yaml",
+  "nodes": [
+    "workflow-process-definitions",
+    "workflow-engine"
+  ],
+  "phases": [
+    {
+      "id": "RELEASE",
+      "description": "Initialize instance creation release",
+      "template": null,
+      "validators": [],
+      "approval": false
+    },
+    {
+      "id": "PROJECT_SELECT",
+      "description": "Select target project from projects defined in node-instances.yaml",
+      "template": null,
+      "validators": [
+        "ic_project_exists"
+      ],
+      "approval": false
+    },
+    {
+      "id": "NODE_SELECT",
+      "description": "Select node template to instantiate from node-templates.yaml",
+      "template": null,
+      "validators": [
+        "ic_template_exists"
+      ],
+      "approval": false
+    },
+    {
+      "id": "CONFIG",
+      "description": "Configure instance: role (provider/consumer), requirements, access method",
+      "template": null,
+      "validators": [
+        "ic_role_valid",
+        "ic_requirements_met"
+      ],
+      "approval": false
+    },
+    {
+      "id": "VALIDATE",
+      "description": "Validate instance configuration and update node-instances.yaml",
+      "template": null,
+      "validators": [
+        "ic_instance_valid"
+      ],
+      "approval": true
+    }
+  ],
+  "artifacts": {
+    "INSTANCE": {
+      "output_pattern": "config/node-instances.yaml",
+      "operation": "update"
+    }
+  }
+}
