@@ -105,7 +105,7 @@ export async function initCommand(directory: string, options: InitOptions): Prom
         version: bundle.version,
         checksum,
         modified: false,
-        source_path: path.relative(projectRoot, srcDir),
+        source_path: `namespaces/${options.methodology}/skills/${skill}`,
       };
     }
     console.log(`  ${chalk.green('✓')} ${skill}`);
