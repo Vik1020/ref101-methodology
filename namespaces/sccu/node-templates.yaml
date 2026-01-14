@@ -519,7 +519,7 @@ templates:
     coupling: structural
 
     # Canonical repository - where node creation templates are defined (SSOT)
-    canonical_repository: ref101-node-validators
+    canonical_repository: ref101-node-hub
     canonical_role: provider
 
     ssot_pattern: "templates/nodes/NODE_TEMPLATE.md"
