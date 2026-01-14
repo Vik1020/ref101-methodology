@@ -7,6 +7,7 @@
 - `core/` - Essential methodology specs (always read)
 - `namespaces/` - Available methodologies (sccu, etc.)
 - `guides/` - Optional learning materials
+  - `guides/standards/` - Development standards (deployment, testing, development)
 - `tools/` - CLI utilities
 
 ## Quick Start
