@@ -24,40 +24,18 @@ bundles:
   minimal:
     path: bundles/minimal.yaml
     description: "Basic workflow support"
-    nodes:
-      - workflow-engine
-      - workflow-mcp-server
-      - workflow-skills-release
 
   standard:
     path: bundles/standard.yaml
     description: "Full SCCU methodology"
-    nodes:
-      - workflow-engine
-      - workflow-phase-templates
-      - workflow-process-definitions
-      - workflow-mcp-server
-      - workflow-skills-release
-      - workflow-skills-utility
-      - architecture-domains
-      - release-artifacts
 
   enterprise:
     path: bundles/enterprise.yaml
     description: "Minimal core for enterprise projects"
-    nodes:
-      - workflow-engine
-      - workflow-phase-templates
-      - workflow-process-definitions
-      - workflow-mcp-server
-      - workflow-skills-release
-      - release-artifacts
 
   full:
     path: bundles/full.yaml
-    description: "All nodes including design system"
-    nodes:
-      - all
+    description: "All SCCU components"
 
 skills:
   - hotfix

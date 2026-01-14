@@ -28,18 +28,6 @@ includes:
       - BC_DOMAIN_TEMPLATE.md
       - AC_DOMAIN_TEMPLATE.md
 
-  nodes:
-    - workflow-engine
-    - workflow-phase-templates
-    - workflow-process-definitions
-    - workflow-mcp-server
-    - workflow-skills-release
-    - release-artifacts
-
 excludes:
   skills:
     - save-to-backlog  # Projects create their own
-  nodes:
-    - workflow-skills-utility
-    - architecture-domains  # Projects create their own
-    - design-tokens

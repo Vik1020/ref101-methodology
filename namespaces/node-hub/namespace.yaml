@@ -1,0 +1,22 @@
+# Node-Hub Namespace Definition
+namespace_id: node-hub
+version: "1.0.0"
+name: "Node Hub"
+description: |
+  Node validation and management system.
+  Defines bounded context nodes with provider/consumer requirements.
+
+  Key concepts:
+  - Node Templates: Abstract definitions of what a node should have
+  - Node Instances: Bindings of templates to actual projects
+  - Validation Rules: Script and semantic checks for compliance
+
+skills:
+  - create-node
+  - create-instance
+  - create-process
+
+processes:
+  - node_creation
+  - instance_creation
+  - process_creation

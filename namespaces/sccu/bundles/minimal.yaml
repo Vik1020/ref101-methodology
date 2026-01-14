@@ -15,7 +15,3 @@ includes:
     - feature_full_auto
     - bugfix_simple
 
-  nodes:
-    - workflow-engine
-    - workflow-mcp-server
-    - workflow-skills-release

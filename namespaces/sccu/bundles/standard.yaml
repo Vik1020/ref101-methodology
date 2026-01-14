@@ -29,12 +29,3 @@ includes:
       - BC_DOMAIN_TEMPLATE.md
       - AC_DOMAIN_TEMPLATE.md
 
-  nodes:
-    - workflow-engine
-    - workflow-phase-templates
-    - workflow-process-definitions
-    - workflow-mcp-server
-    - workflow-skills-release
-    - workflow-skills-utility
-    - architecture-domains
-    - release-artifacts
