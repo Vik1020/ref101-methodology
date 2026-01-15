@@ -1,0 +1,6 @@
+
+# Dogfooding - installed bundle (local development)
+.installed.yaml
+.mcp.json
+.claude/skills/
+processes/
