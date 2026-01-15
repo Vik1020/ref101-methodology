@@ -6,7 +6,8 @@ Monorepo for development methodologies. Currently contains SCCU (Self-Contained 
 
 ```
 ref101-methodology/
-├── manifest.yaml           # SSOT: namespaces, versions, bundles
+├── manifest.yaml           # SSOT: namespaces, versions, bundles (monorepo)
+├── .installed.yaml         # Installed bundle tracker (after init)
 ├── CLAUDE.md               # Instructions for Claude Code
 ├── core/                   # Essential specs (always needed)
 ├── namespaces/

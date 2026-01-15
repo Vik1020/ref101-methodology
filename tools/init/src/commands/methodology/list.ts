@@ -19,7 +19,7 @@ export async function listCommand(options: ListOptions): Promise<void> {
   const namespace = options.namespace || 'sccu';
 
   if (!manifest) {
-    console.log(chalk.red('No manifest.yaml found. Run ref101-init first.'));
+    console.log(chalk.red('No .installed.yaml found. Run ref101-init first.'));
     process.exit(1);
   }
 

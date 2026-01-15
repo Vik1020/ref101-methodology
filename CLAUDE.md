@@ -32,3 +32,20 @@ Key files:
 - `namespaces/sccu/templates/phases/` - Phase templates
 - `namespaces/sccu/processes/` - Process definitions
 - `namespaces/sccu/skills/` - Claude Code skills
+
+<!-- ref101:begin -->
+## Installed Methodology: SCCU
+Bundle: minimal
+
+### Available Skills
+
+- /hotfix
+- /new-feature
+- /new-release-auto
+
+### Processes
+
+- feature_full
+- feature_full_auto
+- bugfix_simple
+<!-- ref101:end -->

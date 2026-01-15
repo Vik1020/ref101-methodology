@@ -42,7 +42,7 @@ export async function updateCommand(options: UpdateOptions): Promise<void> {
   const manifest = await readManifest(projectRoot);
 
   if (!manifest) {
-    console.log(chalk.yellow('No manifest.yaml found.'));
+    console.log(chalk.yellow('No .installed.yaml found.'));
     console.log('Run `ref101-init` to initialize the project first.');
     return;
   }
@@ -51,7 +51,7 @@ export async function updateCommand(options: UpdateOptions): Promise<void> {
   if (!methodologyPath || !await dirExists(methodologyPath)) {
     console.error(chalk.red('Error: Methodology path not found.'));
     console.error(`Path in manifest: ${methodologyPath}`);
-    console.error('Please update manifest.yaml with correct methodology_path');
+    console.error('Please update .installed.yaml with correct methodology_path');
     return;
   }
 

@@ -9,6 +9,7 @@
       "id": "RELEASE",
       "template": "RELEASE_TEMPLATE.md",
       "validators": [
+        "release_state_valid_schema",
         "release_has_problem"
       ],
       "skip_allowed": false

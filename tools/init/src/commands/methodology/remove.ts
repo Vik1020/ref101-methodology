@@ -6,7 +6,7 @@
 import fs from 'fs/promises';
 import path from 'path';
 import chalk from 'chalk';
-import { readManifest, writeManifest } from '../../lib/manifest.js';
+import { readManifest, writeManifest, getManifestPath } from '../../lib/manifest.js';
 import { dirExists, fileExists } from '../../lib/copier.js';
 
 interface RemoveOptions {
@@ -14,20 +14,25 @@ interface RemoveOptions {
 }
 
 export async function removeCommand(
-  id: string,
+  id: string | undefined,
   options: RemoveOptions
 ): Promise<void> {
   const projectRoot = process.cwd();
   const manifest = await readManifest(projectRoot);
 
   if (!manifest) {
-    console.log(chalk.red('No manifest.yaml found.'));
+    console.log(chalk.red('No .installed.yaml found.'));
     process.exit(1);
   }
 
   if (options.all) {
     await removeAll(projectRoot, manifest);
     return;
+  }
+
+  if (!id) {
+    console.log(chalk.red('Error: Please specify component id or use --all'));
+    process.exit(1);
   }
 
   // Check if it's a skill
@@ -128,29 +133,28 @@ async function removeAll(
       console.log(chalk.green('✓ Removed .mcp.json'));
     }
 
-    // Update CLAUDE.md - clear skills/processes sections
+    // Update CLAUDE.md - remove methodology section between markers
     const claudeMdPath = path.join(projectRoot, 'CLAUDE.md');
     if (await fileExists(claudeMdPath)) {
       let content = await fs.readFile(claudeMdPath, 'utf-8');
-      // Replace skills section
-      content = content.replace(
-        /### Available Skills\n\n[\s\S]*?(?=\n###|\n##|$)/,
-        '### Available Skills\n\n_No skills installed_\n'
-      );
-      // Replace processes section
-      content = content.replace(
-        /### Processes\n\n[\s\S]*?(?=\n###|\n##|$)/,
-        '### Processes\n\n_No processes installed_\n'
-      );
-      await fs.writeFile(claudeMdPath, content, 'utf-8');
-      console.log(chalk.green('✓ Updated CLAUDE.md'));
+      const beginMarker = '<!-- ref101:begin -->';
+      const endMarker = '<!-- ref101:end -->';
+
+      if (content.includes(beginMarker) && content.includes(endMarker)) {
+        // Remove the section including markers and surrounding whitespace
+        const regex = /\n*<!-- ref101:begin -->[\s\S]*?<!-- ref101:end -->\n*/;
+        content = content.replace(regex, '\n');
+        content = content.trimEnd() + '\n';
+        await fs.writeFile(claudeMdPath, content, 'utf-8');
+        console.log(chalk.green('✓ Removed methodology section from CLAUDE.md'));
+      }
     }
 
-    // Remove manifest.yaml for complete de-initialization
-    const manifestPath = path.join(projectRoot, 'manifest.yaml');
+    // Remove .installed.yaml for complete de-initialization
+    const manifestPath = getManifestPath(projectRoot);
     if (await fileExists(manifestPath)) {
       await fs.rm(manifestPath);
-      console.log(chalk.green('✓ Removed manifest.yaml'));
+      console.log(chalk.green('✓ Removed .installed.yaml'));
     }
   }
 }

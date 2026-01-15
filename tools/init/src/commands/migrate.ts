@@ -120,7 +120,7 @@ export async function migrateCommand(options: MigrateOptions): Promise<void> {
   await writeManifest(projectRoot, manifest);
 
   console.log(`\n${chalk.green(migrated)} migrated, ${chalk.red(failed)} failed`);
-  console.log(chalk.green('\nMigration complete! manifest.yaml updated.'));
+  console.log(chalk.green('\nMigration complete! .installed.yaml updated.'));
 }
 
 async function detectSymlinks(dir: string, type: 'skill' | 'process'): Promise<SymlinkInfo[]> {

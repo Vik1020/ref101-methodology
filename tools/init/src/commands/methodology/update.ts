@@ -21,7 +21,7 @@ export async function updateCommand(
   const manifest = await readManifest(projectRoot);
 
   if (!manifest) {
-    console.log(chalk.red('No manifest.yaml found. Run ref101-init first.'));
+    console.log(chalk.red('No .installed.yaml found. Run ref101-init first.'));
     process.exit(1);
   }
 

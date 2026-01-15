@@ -23,7 +23,7 @@ export function createMethodologyCommand(): Command {
     .action(installCommand);
 
   cmd
-    .command('remove <id>')
+    .command('remove [id]')
     .description('Remove installed skill or process')
     .option('--all', 'Remove all installed components')
     .action(removeCommand);

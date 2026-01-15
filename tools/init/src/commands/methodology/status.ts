@@ -13,7 +13,7 @@ export async function statusCommand(): Promise<void> {
   const manifest = await readManifest(projectRoot);
 
   if (!manifest) {
-    console.log(chalk.red('No manifest.yaml found.'));
+    console.log(chalk.red('No .installed.yaml found.'));
     console.log(chalk.yellow('Run ref101-init to initialize methodology.'));
     process.exit(1);
   }

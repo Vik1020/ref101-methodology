@@ -139,7 +139,7 @@ export async function initCommand(directory: string, options: InitOptions): Prom
 
   // Create .mcp.json
   console.log(chalk.cyan('\nConfiguration:'));
-  const pccPath = options.pccPath || '../ref101-pcc';
+  const pccPath = options.pccPath || '../ref101-orchestrator';
   const mcpConfig = {
     mcpServers: {
       pcc: {
@@ -161,13 +161,11 @@ export async function initCommand(directory: string, options: InitOptions): Prom
   }
   console.log(`  ${chalk.green('✓')} .mcp.json`);
 
-  // Create CLAUDE.md
-  const claudeMd = `# Project Instructions
-
-> **First:** Read \`methodology/ref101-methodology/core/SYSTEM_PROMPT.md\`
-
-## Methodology: ${options.methodology}
-## Bundle: ${options.bundle}
+  // Update CLAUDE.md with methodology section
+  const claudeMdPath = path.join(projectRoot, 'CLAUDE.md');
+  const methodologySection = `<!-- ref101:begin -->
+## Installed Methodology: ${options.methodology.toUpperCase()}
+Bundle: ${options.bundle}
 
 ### Available Skills
 
@@ -176,12 +174,39 @@ ${bundle.includes.skills.map(s => `- /${s}`).join('\n')}
 ### Processes
 
 ${bundle.includes.processes.map(p => `- ${p}`).join('\n')}
-`;
+<!-- ref101:end -->`;
 
   if (!options.dryRun) {
-    await fs.writeFile(path.join(projectRoot, 'CLAUDE.md'), claudeMd, 'utf-8');
+    if (await fileExists(claudeMdPath)) {
+      // File exists - update or append section
+      let content = await fs.readFile(claudeMdPath, 'utf-8');
+      const beginMarker = '<!-- ref101:begin -->';
+      const endMarker = '<!-- ref101:end -->';
+
+      if (content.includes(beginMarker) && content.includes(endMarker)) {
+        // Replace existing section
+        const regex = /<!-- ref101:begin -->[\s\S]*?<!-- ref101:end -->/;
+        content = content.replace(regex, methodologySection);
+      } else {
+        // Append section at the end
+        content = content.trimEnd() + '\n\n' + methodologySection + '\n';
+      }
+      await fs.writeFile(claudeMdPath, content, 'utf-8');
+      console.log(`  ${chalk.green('✓')} CLAUDE.md (updated methodology section)`);
+    } else {
+      // Create new file with full content
+      const claudeMd = `# Project Instructions
+
+> **First:** Read \`methodology/ref101-methodology/core/SYSTEM_PROMPT.md\`
+
+${methodologySection}
+`;
+      await fs.writeFile(claudeMdPath, claudeMd, 'utf-8');
+      console.log(`  ${chalk.green('✓')} CLAUDE.md (created)`);
+    }
+  } else {
+    console.log(`  ${chalk.green('✓')} CLAUDE.md`);
   }
-  console.log(`  ${chalk.green('✓')} CLAUDE.md`);
 
   // Create directories
   if (!options.dryRun) {
@@ -197,7 +222,7 @@ ${bundle.includes.processes.map(p => `- ${p}`).join('\n')}
   if (!options.dryRun) {
     await writeManifest(projectRoot, manifest);
   }
-  console.log(`  ${chalk.green('✓')} manifest.yaml`);
+  console.log(`  ${chalk.green('✓')} .installed.yaml`);
 
   console.log(chalk.green('\n✅ Project initialized successfully!\n'));
   console.log('Next steps:');
