@@ -1359,6 +1359,99 @@ properties:
 | YAML → Tests | Генерация property-based тестов | Hypothesis/fast-check |
 | YAML → Diagram | Генерация PlantUML/Mermaid | Custom script |
 
+### 18.4 Практические расширения
+
+При реализации конкретных методологий допускается расширение базовой схемы для практических нужд. Эти расширения обратно совместимы и не нарушают семантику базовых 8 элементов.
+
+#### Tool type: MCP
+
+Спецификация определяет типы Tool: `API`, `UI`, `LLM`, `Script`, `Manual`.
+
+**Расширение:** Тип `MCP` (Model Context Protocol) для инструментов, работающих через MCP-серверы в Claude Code и других AI-агентах.
+
+```yaml
+tools:
+  - id: "mcp_pcc"
+    name: "PCC MCP Server"
+    type: "MCP"  # Расширение: Model Context Protocol
+    compatible_actors: ["AI"]
+    input_schema:
+      release_id: "string (required)"
+      artifact_type: "string (optional)"
+    output_schema:
+      success: "boolean"
+      error: "string (optional)"
+```
+
+**Обоснование:** MCP — стандарт для tool use в современных AI-агентах, семантически ближе к API, но с собственным протоколом.
+
+#### Секция: phase_defaults
+
+**Назначение:** SSOT (Single Source of Truth) для генерации `processes/*.json` из `methodology.yaml`.
+
+```yaml
+phase_defaults:
+  RELEASE:
+    template: "RELEASE_TEMPLATE.md"
+    validators:
+      - "release_state_valid_schema"
+      - "release_has_problem"
+    skip_allowed: false
+
+  BC_DELTA:
+    template: "BC_DELTA_TEMPLATE.md"
+    validators:
+      - "bc_has_goals"
+      - "bc_has_actors"
+    approval_role: "product_owner"
+```
+
+**Использование:** Команда `ref101-meta generate <namespace>` использует `phase_defaults` для генерации JSON-конфигураций процессов.
+
+#### Секция: processes
+
+**Назначение:** Предопределённые композиции States для типичных сценариев использования методологии.
+
+```yaml
+processes:
+  - id: "feature_full"
+    version: "1.0.0"
+    name: "Feature Development (Full)"
+    type: "feature_development"
+    states_sequence:
+      - "RELEASE"
+      - "BC_DELTA"
+      - "AC_DELTA"
+      - "PLAN_FINALIZE"
+      - "PC"
+      - "IC"
+      - "QA"
+      - "DEPLOY"
+    approval_points:
+      BC_DELTA: { role: "product_owner" }
+      QA: { role: "qa_lead" }
+    nodes:
+      "sccu:workflow-engine": "^1.0.0"
+```
+
+**Отличие от базовой модели:** Спецификация определяет 8 базовых элементов. `processes` — это композиция `States` с дополнительной метаинформацией для runtime-конфигурации.
+
+#### Entity.role
+
+**Назначение:** Разделение сущностей на primary (проходят через States) и secondary (создаются как side effect).
+
+```yaml
+entities:
+  - id: "release"
+    type: "Release"
+    role: "primary"  # Проходит через States
+    artifacts:
+      - "release_artifact"
+      - "pc_artifact"
+```
+
+**Обоснование:** В сложных методологиях одна Entity проходит workflow, а другие создаются в процессе. Атрибут `role` делает это явным.
+
 ---
 
 ## 19. Тестирование методологий

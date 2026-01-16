@@ -227,7 +227,7 @@ $defs:
   # === ACTION ===
   Action:
     type: object
-    required: [id, name]
+    required: [id, name, actor, tool, input]
     properties:
       id:
         type: string
@@ -324,7 +324,7 @@ $defs:
   # === FACT ===
   Fact:
     type: object
-    required: [id, name]
+    required: [id, name, from_state, to_state]
     properties:
       id:
         type: string
@@ -353,7 +353,7 @@ $defs:
   # === RULE ===
   Rule:
     type: object
-    required: [id, name, type]
+    required: [id, name, type, condition, on_violation]
     properties:
       id:
         type: string
