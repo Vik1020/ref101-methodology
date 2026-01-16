@@ -87,11 +87,39 @@ export interface Rule {
   redirect_to?: string;
 }
 
+// Approval point configuration
+export interface ApprovalPoint {
+  role: string;
+  note?: string;
+}
+
+// Phase defaults for SSOT generation
+export interface PhaseDefault {
+  template?: string;
+  validators?: string[];
+  approval_role?: string;
+  skip_allowed?: boolean;
+}
+
+// Process definition (extended for SSOT)
 export interface Process {
   id: string;
+  version?: string;
+  name?: string;
+  type?: string;  // feature_development | bugfix | etc.
   description?: string;
   states_sequence: string[];
-  approval_points?: string[];
+
+  // Can be string[] (legacy) or Record (SSOT)
+  approval_points?: string[] | Record<string, ApprovalPoint>;
+
+  // Per-process phase overrides
+  phase_overrides?: Record<string, Partial<PhaseDefault>>;
+
+  // Node dependencies
+  nodes?: Record<string, string>;
+
+  // Legacy field
   skip_allowed?: string[];
 }
 
@@ -109,6 +137,10 @@ export interface Methodology {
   artifacts?: Artifact[];
   facts: Fact[];
   rules?: Rule[];
+
+  // SSOT: Phase defaults for process generation
+  phase_defaults?: Record<string, PhaseDefault>;
+
   processes?: Process[];
 }
 
