@@ -23,19 +23,19 @@ export function createMethodologyCommand(): Command {
     .action(installCommand);
 
   cmd
-    .command('remove [id]')
+    .command('remove [id] [directory]')
     .description('Remove installed skill or process')
     .option('--all', 'Remove all installed components')
     .action(removeCommand);
 
   cmd
-    .command('update [id]')
+    .command('update [id] [directory]')
     .description('Update installed components from source')
     .option('--force', 'Force update even if locally modified')
     .action(updateCommand);
 
   cmd
-    .command('status')
+    .command('status [directory]')
     .description('Show installed methodology status')
     .action(statusCommand);
 

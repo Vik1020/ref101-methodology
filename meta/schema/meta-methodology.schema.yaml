@@ -1,0 +1,416 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "meta-methodology.schema.yaml"
+title: Methodology
+description: |
+  Полное описание методологии через 8 элементов мета-методологии v3:
+  State, Actor, Tool, Action, Entity, Artifact, Fact, Rule
+
+type: object
+required:
+  - methodology_id
+  - version
+  - name
+  - states
+  - actors
+  - actions
+  - facts
+
+properties:
+  methodology_id:
+    type: string
+    description: "Уникальный идентификатор методологии"
+    pattern: "^[a-z][a-z0-9_-]*$"
+    examples: ["sccu", "node-hub"]
+
+  version:
+    type: string
+    description: "Семантическая версия методологии"
+    pattern: "^\\d+\\.\\d+\\.\\d+$"
+
+  name:
+    type: string
+    description: "Человекочитаемое название методологии"
+
+  meta_version:
+    type: string
+    description: "Версия мета-методологии, на которой основано описание"
+    default: "3.1"
+
+  description:
+    type: string
+    description: "Краткое описание назначения методологии"
+
+  # === ENTITIES ===
+  entities:
+    type: array
+    description: "Бизнес-объекты, проходящие через States"
+    items:
+      $ref: "#/$defs/Entity"
+
+  # === STATES ===
+  states:
+    type: array
+    description: "Фазы жизненного цикла Entity"
+    minItems: 2
+    items:
+      $ref: "#/$defs/State"
+
+  # === ACTORS ===
+  actors:
+    type: array
+    description: "Исполнители действий (Human, AI, System)"
+    minItems: 1
+    items:
+      $ref: "#/$defs/Actor"
+
+  # === TOOLS ===
+  tools:
+    type: array
+    description: "Инструменты для выполнения Actions"
+    items:
+      $ref: "#/$defs/Tool"
+
+  # === ACTIONS ===
+  actions:
+    type: array
+    description: "Единицы работы, выполняемые Actors"
+    minItems: 1
+    items:
+      $ref: "#/$defs/Action"
+
+  # === ARTIFACTS ===
+  artifacts:
+    type: array
+    description: "Файлы/документы, создаваемые Actions"
+    items:
+      $ref: "#/$defs/Artifact"
+
+  # === FACTS ===
+  facts:
+    type: array
+    description: "События, триггерящие переходы между States"
+    minItems: 1
+    items:
+      $ref: "#/$defs/Fact"
+
+  # === RULES ===
+  rules:
+    type: array
+    description: "Условия, ограничивающие Actions и переходы"
+    items:
+      $ref: "#/$defs/Rule"
+
+  # === PROCESSES (Compositions) ===
+  processes:
+    type: array
+    description: "Предопределённые композиции States для типичных сценариев"
+    items:
+      $ref: "#/$defs/Process"
+
+$defs:
+  # === STATE ===
+  State:
+    type: object
+    required: [id, name, type]
+    properties:
+      id:
+        type: string
+        description: "Уникальный идентификатор состояния"
+        pattern: "^[A-Z][A-Z0-9_]*$"
+      name:
+        type: string
+        description: "Человекочитаемое название"
+      type:
+        type: string
+        enum: [Initial, Working, Waiting, Terminal, Error]
+        description: |
+          Initial - начальное состояние (одно на методологию)
+          Working - активная работа
+          Waiting - ожидание внешнего события (approval, timeout)
+          Terminal - конечное состояние
+          Error - состояние ошибки
+      allowed_actions:
+        type: array
+        items:
+          type: string
+        description: "Список id Actions, допустимых в этом State"
+      entry_conditions:
+        type: array
+        items:
+          type: string
+        description: "Список id Facts, приводящих в этот State"
+      exit_conditions:
+        type: array
+        items:
+          type: string
+        description: "Список id Facts, выводящих из этого State"
+      timeout:
+        type: string
+        pattern: "^\\d+[hmd]$"
+        description: "Таймаут нахождения в состоянии (24h, 30m, 7d)"
+      on_timeout:
+        type: object
+        properties:
+          action:
+            type: string
+            description: "Action для выполнения при таймауте"
+          target_state:
+            type: string
+            description: "State для перехода при таймауте"
+
+  # === ACTOR ===
+  Actor:
+    type: object
+    required: [id, name, type]
+    properties:
+      id:
+        type: string
+        pattern: "^[a-z][a-z0-9_]*$"
+      name:
+        type: string
+      type:
+        type: string
+        enum: [Human, AI, System]
+        description: |
+          Human - человек, использует UI
+          AI - AI-агент, использует API/LLM
+          System - автоматический триггер (cron, webhook)
+      tools:
+        type: array
+        items:
+          type: string
+        description: "Список id Tools, доступных актору"
+      permissions:
+        type: array
+        items:
+          type: string
+        description: "Список id Actions, разрешённых актору"
+
+  # === TOOL ===
+  Tool:
+    type: object
+    required: [id, name, type]
+    properties:
+      id:
+        type: string
+        pattern: "^[a-z][a-z0-9_]*$"
+      name:
+        type: string
+      type:
+        type: string
+        enum: [API, UI, LLM, Script, Manual, MCP]
+        description: |
+          API - программный интерфейс
+          UI - пользовательский интерфейс
+          LLM - языковая модель
+          Script - автоматизированный скрипт
+          Manual - ручное действие
+          MCP - Model Context Protocol tool
+      compatible_actors:
+        type: array
+        items:
+          type: string
+          enum: [Human, AI, System]
+        description: "Типы акторов, которые могут использовать этот инструмент"
+      operations:
+        type: array
+        items:
+          type: string
+        description: "Список операций, предоставляемых инструментом"
+      input_schema:
+        type: object
+        description: "JSON Schema входных данных"
+      output_schema:
+        type: object
+        description: "JSON Schema выходных данных"
+
+  # === ACTION ===
+  Action:
+    type: object
+    required: [id, name]
+    properties:
+      id:
+        type: string
+        pattern: "^[a-z][a-z0-9_]*$"
+      name:
+        type: string
+        description: "Глагол в инфинитиве (Create, Validate, Approve)"
+      actor:
+        type: string
+        description: "id Actor, выполняющего действие"
+      tool:
+        type: string
+        description: "id Tool, используемого для действия"
+      allowed_in_states:
+        type: array
+        items:
+          type: string
+        description: "Список id States, в которых допустимо действие"
+      input:
+        type: string
+        description: "id Entity или Artifact на входе"
+      output:
+        oneOf:
+          - type: string
+            description: "id Fact или Artifact на выходе"
+          - type: object
+            properties:
+              fact:
+                type: string
+              artifact:
+                type: string
+      retry:
+        type: object
+        properties:
+          max_attempts:
+            type: integer
+            minimum: 1
+          delay:
+            type: string
+            enum: [fixed, exponential]
+          on_exhausted:
+            type: string
+            description: "id Fact для создания при исчерпании попыток"
+
+  # === ENTITY ===
+  Entity:
+    type: object
+    required: [id, type]
+    properties:
+      id:
+        type: string
+        pattern: "^[a-z][a-z0-9_]*$"
+      type:
+        type: string
+        description: "Тип сущности (Release, Document, etc)"
+      role:
+        type: string
+        enum: [primary, secondary]
+        default: primary
+        description: "primary - проходит через States, secondary - создаётся как side effect"
+      schema:
+        type: object
+        description: "JSON Schema структуры данных сущности"
+      artifacts:
+        type: array
+        items:
+          type: string
+        description: "Список id Artifacts, привязанных к сущности"
+
+  # === ARTIFACT ===
+  Artifact:
+    type: object
+    required: [id, name, type]
+    properties:
+      id:
+        type: string
+        pattern: "^[a-z][a-z0-9_]*$"
+      name:
+        type: string
+        description: "Имя файла или шаблон имени"
+      type:
+        type: string
+        description: "MIME-тип или расширение (markdown, json, yaml)"
+      template:
+        type: string
+        description: "Путь к шаблону артефакта"
+      created_by:
+        type: string
+        description: "id Action, создающего артефакт"
+      entity_id:
+        type: string
+        description: "id Entity, к которой привязан артефакт"
+
+  # === FACT ===
+  Fact:
+    type: object
+    required: [id, name]
+    properties:
+      id:
+        type: string
+        pattern: "^[a-z][a-z0-9_]*$"
+      name:
+        type: string
+        description: "Глагол в прошедшем времени (Created, Approved, Failed)"
+      from_state:
+        type: string
+        description: "id State, из которого происходит переход"
+      to_state:
+        type: string
+        description: "id State, в который происходит переход"
+      triggered_by:
+        type: string
+        description: "id Action, вызвавшего событие"
+      requires:
+        type: array
+        items:
+          type: string
+        description: "Список id Facts, которые должны произойти до этого"
+      payload:
+        type: object
+        description: "Дополнительные данные события"
+
+  # === RULE ===
+  Rule:
+    type: object
+    required: [id, name, type]
+    properties:
+      id:
+        type: string
+        pattern: "^[a-z][a-z0-9_]*$"
+      name:
+        type: string
+        description: "Описание правила"
+      type:
+        type: string
+        enum: [Precondition, Postcondition, Guard, Invariant, Constraint]
+        description: |
+          Precondition - проверка до выполнения Action
+          Postcondition - проверка после выполнения Action
+          Guard - проверка при попытке перехода между States
+          Invariant - проверка, которая всегда должна выполняться
+          Constraint - ограничение при изменении Entity
+      condition:
+        type: string
+        description: "Логическое выражение условия"
+      scope:
+        type: string
+        description: "State или Action, к которому применяется правило"
+      on_violation:
+        type: string
+        enum: [Block, Redirect, Compensate, Alert, Retry]
+        description: |
+          Block - запретить действие/переход
+          Redirect - перенаправить в другой State
+          Compensate - запустить компенсирующий Action
+          Alert - уведомить и продолжить
+          Retry - повторить Action
+      redirect_to:
+        type: string
+        description: "id State для перенаправления при on_violation=Redirect"
+
+  # === PROCESS ===
+  Process:
+    type: object
+    required: [id, states_sequence]
+    properties:
+      id:
+        type: string
+        pattern: "^[a-z][a-z0-9_]*$"
+      description:
+        type: string
+      states_sequence:
+        type: array
+        items:
+          type: string
+        description: "Последовательность id States в процессе"
+      approval_points:
+        type: array
+        items:
+          type: string
+        description: "Список id States, требующих human approval"
+      skip_allowed:
+        type: array
+        items:
+          type: string
+        description: "Список id States, которые можно пропустить"

@@ -27,8 +27,8 @@ interface SymlinkInfo {
   name: string;
 }
 
-export async function migrateCommand(options: MigrateOptions): Promise<void> {
-  const projectRoot = process.cwd();
+export async function migrateCommand(directory: string | undefined, options: MigrateOptions): Promise<void> {
+  const projectRoot = directory ? path.resolve(directory) : process.cwd();
   console.log(chalk.blue('ref101 Migration Tool\n'));
 
   const dryRun = options.dryRun === true;

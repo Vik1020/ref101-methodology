@@ -15,9 +15,10 @@ interface RemoveOptions {
 
 export async function removeCommand(
   id: string | undefined,
+  directory: string | undefined,
   options: RemoveOptions
 ): Promise<void> {
-  const projectRoot = process.cwd();
+  const projectRoot = directory ? path.resolve(directory) : process.cwd();
   const manifest = await readManifest(projectRoot);
 
   if (!manifest) {

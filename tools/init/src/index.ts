@@ -32,13 +32,13 @@ program
 
 // Status subcommand
 program
-  .command('status')
+  .command('status [directory]')
   .description('Show current methodology status')
   .action(statusCommand);
 
 // Update subcommand
 program
-  .command('update')
+  .command('update [directory]')
   .description('Update skills and processes from methodology source')
   .option('--check', 'Check for available updates (default)')
   .option('--skill <name>', 'Update specific skill')
@@ -50,10 +50,10 @@ program
 
 // Migrate subcommand
 program
-  .command('migrate')
+  .command('migrate [directory]')
   .description('Migrate from symlinks to copy-on-init approach')
   .option('--preview', 'Show what would be migrated without making changes')
-  .action((options) => migrateCommand({ dryRun: options.preview }));
+  .action((directory, options) => migrateCommand(directory, { dryRun: options.preview }));
 
 // Methodology subcommand group
 program.addCommand(createMethodologyCommand());

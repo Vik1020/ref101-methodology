@@ -8,8 +8,8 @@ import chalk from 'chalk';
 import { readManifest, calculateDirChecksum, calculateChecksum } from '../lib/manifest.js';
 import { dirExists, fileExists } from '../lib/copier.js';
 
-export async function statusCommand(): Promise<void> {
-  const projectRoot = process.cwd();
+export async function statusCommand(directory?: string): Promise<void> {
+  const projectRoot = directory ? path.resolve(directory) : process.cwd();
   const manifest = await readManifest(projectRoot);
 
   if (!manifest) {

@@ -1,0 +1,51 @@
+stateDiagram-v2
+
+    %% State types:
+    %% Initial: RELEASE
+    %% Terminal: DEPLOY
+    %% Error: ERROR
+    %% Waiting (approval): QA, BC_DELTA, AC_DELTA, PLAN_FINALIZE
+
+    [*] --> RELEASE
+
+    %% Normal transitions
+    RELEASE --> PC: release_to_pc
+    PC --> IC: pc_completed
+    IC --> QA: ic_completed
+    QA --> DEPLOY: qa_completed
+    RELEASE --> BC_DELTA: release_to_bc
+    BC_DELTA --> AC_DELTA: bc_delta_completed
+    AC_DELTA --> PLAN_FINALIZE: ac_delta_completed
+    PLAN_FINALIZE --> PC: plan_finalize_completed
+    QA --> APPLY_DELTAS: qa_to_apply_deltas
+    APPLY_DELTAS --> DEPLOY: apply_deltas_completed
+    QA --> DEPLOY: qa_approved
+    BC_DELTA --> AC_DELTA: bc_delta_approved
+    AC_DELTA --> PLAN_FINALIZE: ac_delta_approved
+    PLAN_FINALIZE --> PC: plan_finalize_approved
+    DEPLOY --> [*]
+
+    %% Error transitions
+    PC --> ERROR: error_from_pc
+    IC --> ERROR: error_from_ic
+    QA --> ERROR: error_from_qa
+    BC_DELTA --> ERROR: error_from_bc_delta
+    AC_DELTA --> ERROR: error_from_ac_delta
+    PLAN_FINALIZE --> ERROR: error_from_plan_finalize
+    APPLY_DELTAS --> ERROR: error_from_apply_deltas
+    ERROR --> PC: retry_to_pc
+
+    %% Approval points (Waiting states)
+    note right of QA: Requires approval
+    note right of BC_DELTA: Requires approval
+    note right of AC_DELTA: Requires approval
+    note right of PLAN_FINALIZE: Requires approval
+
+    %% Error state styling
+    ERROR:::errorState
+    classDef errorState fill:#f96,stroke:#333,stroke-width:2px
+
+    %% Processes defined:
+    %% - bugfix_simple: RELEASE -> PC -> IC -> QA -> DEPLOY
+    %% - feature_full: RELEASE -> BC_DELTA -> AC_DELTA -> PLAN_FINALIZE -> PC -> IC -> QA -> APPLY_DELTAS -> DEPLOY
+    %% - feature_full_auto: RELEASE -> BC_DELTA -> AC_DELTA -> PLAN_FINALIZE -> PC -> IC -> QA -> APPLY_DELTAS -> DEPLOY

@@ -37,8 +37,8 @@ interface UpdateInfo {
   destPath: string;
 }
 
-export async function updateCommand(options: UpdateOptions): Promise<void> {
-  const projectRoot = process.cwd();
+export async function updateCommand(directory: string | undefined, options: UpdateOptions): Promise<void> {
+  const projectRoot = directory ? path.resolve(directory) : process.cwd();
   const manifest = await readManifest(projectRoot);
 
   if (!manifest) {

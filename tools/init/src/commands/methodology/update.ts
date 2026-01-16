@@ -15,9 +15,10 @@ interface UpdateOptions {
 
 export async function updateCommand(
   id: string | undefined,
+  directory: string | undefined,
   options: UpdateOptions
 ): Promise<void> {
-  const projectRoot = process.cwd();
+  const projectRoot = directory ? path.resolve(directory) : process.cwd();
   const manifest = await readManifest(projectRoot);
 
   if (!manifest) {
