@@ -18,9 +18,17 @@
 
 ## For New Projects
 
+Install methodology to another project using the local CLI:
+
 ```bash
-npx @ref101/init --methodology sccu --bundle enterprise
+# From ref101-methodology root
+node tools/init/dist/index.js --methodology sccu --bundle minimal --methodology-path . /path/to/target-project
+
+# Available bundles: minimal, standard, enterprise
+# Use --dry-run to preview changes
 ```
+
+CLI location: `tools/init/`
 
 ## Namespace: SCCU
 
