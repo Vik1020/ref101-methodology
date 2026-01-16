@@ -11,6 +11,7 @@ import { removeCommand } from './remove.js';
 import { updateCommand } from './update.js';
 import { statusCommand } from './status.js';
 import { listCommand } from './list.js';
+import { syncCommand } from './sync.js';
 
 export function createMethodologyCommand(): Command {
   const cmd = new Command('methodology')
@@ -44,6 +45,11 @@ export function createMethodologyCommand(): Command {
     .description('List available components from source')
     .option('-n, --namespace <name>', 'Namespace to list', 'sccu')
     .action(listCommand);
+
+  cmd
+    .command('sync [directory]')
+    .description('Check sync between methodology.yaml and processes/*.json')
+    .action(syncCommand);
 
   return cmd;
 }

@@ -10,6 +10,7 @@ import YAML from 'yaml';
 import chalk from 'chalk';
 import { copyDir, copyFile, ensureDir, fileExists, dirExists } from '../lib/copier.js';
 import { createEmptyManifest, writeManifest, calculateDirChecksum, calculateChecksum, type Manifest } from '../lib/manifest.js';
+import { loadMethodology, validateMethodology, validateProcessSync, type MethodologyInfo } from '../lib/methodology-validator.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -75,6 +76,45 @@ export async function initCommand(directory: string, options: InitOptions): Prom
 
   if (options.dryRun) {
     console.log(chalk.yellow('Dry run mode - no files will be created\n'));
+  }
+
+  // Validate methodology.yaml if exists
+  console.log(chalk.cyan('Methodology validation:'));
+  const methodology = await loadMethodology(methodologyPath, options.methodology);
+
+  if (methodology) {
+    const validation = validateMethodology(methodology);
+
+    if (validation.errors.length > 0) {
+      console.log(`  ${chalk.red('✗')} methodology.yaml has errors:`);
+      for (const err of validation.errors) {
+        console.log(`    ${chalk.red('•')} ${err}`);
+      }
+      console.log(chalk.red('\nFix methodology.yaml errors before initializing.'));
+      process.exit(1);
+    }
+
+    if (validation.warnings.length > 0) {
+      console.log(`  ${chalk.yellow('⚠')} methodology.yaml has warnings:`);
+      for (const warn of validation.warnings) {
+        console.log(`    ${chalk.yellow('•')} ${warn}`);
+      }
+    }
+
+    // Check process sync
+    const syncResult = await validateProcessSync(methodologyPath, options.methodology, methodology);
+    if (!syncResult.synced) {
+      console.log(`  ${chalk.yellow('⚠')} Process sync issues:`);
+      for (const issue of syncResult.issues) {
+        console.log(`    ${chalk.yellow('•')} ${issue}`);
+      }
+    }
+
+    if (validation.errors.length === 0 && validation.warnings.length === 0 && syncResult.synced) {
+      console.log(`  ${chalk.green('✓')} methodology.yaml is valid`);
+    }
+  } else {
+    console.log(`  ${chalk.dim('○')} No methodology.yaml found (optional)`);
   }
 
   // Create manifest
@@ -163,18 +203,7 @@ export async function initCommand(directory: string, options: InitOptions): Prom
 
   // Update CLAUDE.md with methodology section
   const claudeMdPath = path.join(projectRoot, 'CLAUDE.md');
-  const methodologySection = `<!-- ref101:begin -->
-## Installed Methodology: ${options.methodology.toUpperCase()}
-Bundle: ${options.bundle}
-
-### Available Skills
-
-${bundle.includes.skills.map(s => `- /${s}`).join('\n')}
-
-### Processes
-
-${bundle.includes.processes.map(p => `- ${p}`).join('\n')}
-<!-- ref101:end -->`;
+  const methodologySection = generateMethodologySection(options.methodology, options.bundle, bundle, methodology);
 
   if (!options.dryRun) {
     if (await fileExists(claudeMdPath)) {
@@ -255,4 +284,81 @@ async function findMethodologyPath(explicitPath?: string): Promise<string | null
   }
 
   return null;
+}
+
+function generateMethodologySection(
+  namespace: string,
+  bundleName: string,
+  bundle: BundleDefinition,
+  methodology: MethodologyInfo | null
+): string {
+  const lines: string[] = [
+    '<!-- ref101:begin -->',
+    `## Installed Methodology: ${namespace.toUpperCase()}`,
+    `Bundle: ${bundleName}`,
+    '',
+  ];
+
+  // If methodology.yaml exists, add rich info
+  if (methodology) {
+    lines.push(`**${methodology.name}** v${methodology.version}`);
+    if (methodology.meta_version) {
+      lines.push(`Meta-methodology: v${methodology.meta_version}`);
+    }
+    lines.push('');
+
+    // Workflow states
+    if (methodology.states && methodology.states.length > 0) {
+      const statesByType: Record<string, string[]> = {};
+      for (const state of methodology.states) {
+        if (!statesByType[state.type]) statesByType[state.type] = [];
+        statesByType[state.type].push(state.id);
+      }
+
+      lines.push('### Workflow States');
+      lines.push('');
+      for (const [type, ids] of Object.entries(statesByType)) {
+        lines.push(`- **${type}**: ${ids.join(', ')}`);
+      }
+      lines.push('');
+    }
+
+    // Processes with descriptions
+    if (methodology.processes && methodology.processes.length > 0) {
+      lines.push('### Processes');
+      lines.push('');
+      for (const proc of methodology.processes) {
+        lines.push(`- **${proc.id}** (${proc.states_sequence.length} phases)`);
+        if (proc.description) {
+          // Truncate long descriptions
+          const desc = proc.description.length > 100
+            ? proc.description.slice(0, 100) + '...'
+            : proc.description;
+          lines.push(`  - ${desc}`);
+        }
+      }
+      lines.push('');
+    }
+  }
+
+  // Skills (always from bundle)
+  lines.push('### Available Skills');
+  lines.push('');
+  for (const skill of bundle.includes.skills) {
+    lines.push(`- /${skill}`);
+  }
+
+  // If no methodology, add basic processes list
+  if (!methodology) {
+    lines.push('');
+    lines.push('### Processes');
+    lines.push('');
+    for (const proc of bundle.includes.processes) {
+      lines.push(`- ${proc}`);
+    }
+  }
+
+  lines.push('<!-- ref101:end -->');
+
+  return lines.join('\n');
 }
