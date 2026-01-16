@@ -42,18 +42,35 @@ states:
     type: "Initial"
     allowed_actions:
       - "create_release"
+    entry_conditions: []
+    exit_conditions:
+      - "release_to_pc"
+      - "release_to_bc"
   - id: "PC"
     name: "PC"
     type: "Working"
     allowed_actions:
       - "create_pc"
       - "handle_error"
+    entry_conditions:
+      - "release_to_pc"
+      - "plan_finalize_completed"
+      - "plan_finalize_approved"
+      - "retry_to_pc"
+    exit_conditions:
+      - "pc_completed"
+      - "error_from_pc"
   - id: "IC"
     name: "IC"
     type: "Working"
     allowed_actions:
       - "create_ic"
       - "handle_error"
+    entry_conditions:
+      - "pc_completed"
+    exit_conditions:
+      - "ic_completed"
+      - "error_from_ic"
   - id: "QA"
     name: "QA"
     type: "Waiting"
@@ -61,12 +78,24 @@ states:
       - "create_qa"
       - "approve_qa"
       - "handle_error"
+    entry_conditions:
+      - "ic_completed"
+    exit_conditions:
+      - "qa_completed"
+      - "qa_to_apply_deltas"
+      - "qa_approved"
+      - "error_from_qa"
     timeout: "24h"
   - id: "DEPLOY"
     name: "DEPLOY"
     type: "Terminal"
     allowed_actions:
       - "create_deploy"
+    entry_conditions:
+      - "qa_completed"
+      - "qa_approved"
+      - "apply_deltas_completed"
+    exit_conditions: []
   - id: "BC_DELTA"
     name: "BC Delta"
     type: "Waiting"
@@ -74,6 +103,12 @@ states:
       - "create_bc_delta"
       - "approve_bc_delta"
       - "handle_error"
+    entry_conditions:
+      - "release_to_bc"
+    exit_conditions:
+      - "bc_delta_completed"
+      - "bc_delta_approved"
+      - "error_from_bc_delta"
     timeout: "24h"
   - id: "AC_DELTA"
     name: "AC Delta"
@@ -82,6 +117,13 @@ states:
       - "create_ac_delta"
       - "approve_ac_delta"
       - "handle_error"
+    entry_conditions:
+      - "bc_delta_completed"
+      - "bc_delta_approved"
+    exit_conditions:
+      - "ac_delta_completed"
+      - "ac_delta_approved"
+      - "error_from_ac_delta"
     timeout: "24h"
   - id: "PLAN_FINALIZE"
     name: "Plan Finalize"
@@ -90,6 +132,13 @@ states:
       - "create_plan_finalize"
       - "approve_plan_finalize"
       - "handle_error"
+    entry_conditions:
+      - "ac_delta_completed"
+      - "ac_delta_approved"
+    exit_conditions:
+      - "plan_finalize_completed"
+      - "plan_finalize_approved"
+      - "error_from_plan_finalize"
     timeout: "24h"
   - id: "APPLY_DELTAS"
     name: "Apply Deltas"
@@ -97,12 +146,27 @@ states:
     allowed_actions:
       - "create_apply_deltas"
       - "handle_error"
+    entry_conditions:
+      - "qa_to_apply_deltas"
+    exit_conditions:
+      - "apply_deltas_completed"
+      - "error_from_apply_deltas"
   - id: "ERROR"
     name: "Error"
     type: "Error"
     allowed_actions:
       - "handle_error"
       - "retry_phase"
+    entry_conditions:
+      - "error_from_pc"
+      - "error_from_ic"
+      - "error_from_qa"
+      - "error_from_bc_delta"
+      - "error_from_ac_delta"
+      - "error_from_plan_finalize"
+      - "error_from_apply_deltas"
+    exit_conditions:
+      - "retry_to_pc"
     on_timeout:
       action: "escalate"
       target_state: "DEPLOY"
@@ -149,6 +213,15 @@ actors:
       - "approval_ui"
     permissions:
       - "approve_team"
+  - id: "ci_system"
+    name: "CI/CD Pipeline"
+    type: "System"
+    tools:
+      - "bash"
+    permissions:
+      - "run_tests"
+      - "run_build"
+      - "deploy_artifact"
 
 # === TOOLS (Instruments for Actions) ===
 tools:
@@ -157,6 +230,16 @@ tools:
     type: "MCP"
     compatible_actors:
       - "AI"
+    input_schema:
+      release_id: "string (required)"
+      artifact_type: "string (optional)"
+      content: "string (optional)"
+      phase: "string (optional)"
+    output_schema:
+      success: "boolean"
+      artifact_path: "string (optional)"
+      state: "object (optional)"
+      error: "string (optional)"
     operations:
       - "pcc_init_release"
       - "pcc_create_artifact"
@@ -167,6 +250,15 @@ tools:
     type: "Script"
     compatible_actors:
       - "AI"
+    input_schema:
+      file_path: "string (required)"
+      content: "string (optional)"
+      old_string: "string (optional)"
+      new_string: "string (optional)"
+    output_schema:
+      success: "boolean"
+      content: "string (optional)"
+      error: "string (optional)"
     operations:
       - "read"
       - "write"
@@ -177,6 +269,14 @@ tools:
     compatible_actors:
       - "AI"
       - "System"
+    input_schema:
+      command: "string (required)"
+      timeout: "number (optional)"
+      cwd: "string (optional)"
+    output_schema:
+      stdout: "string"
+      stderr: "string"
+      exit_code: "number"
     operations:
       - "execute_command"
       - "git_operations"
@@ -185,6 +285,14 @@ tools:
     type: "UI"
     compatible_actors:
       - "Human"
+    input_schema:
+      artifact_id: "string (required)"
+      action: "enum (approve|reject|request_changes)"
+      comment: "string (optional)"
+    output_schema:
+      approved: "boolean"
+      comment: "string (optional)"
+      timestamp: "datetime"
     operations:
       - "approve"
       - "reject"
@@ -196,38 +304,59 @@ actions:
     name: "Create RELEASE"
     actor: "claude_agent"
     tool: "mcp_pcc"
+    input: "release"
     allowed_in_states:
       - "RELEASE"
     output:
       artifact: "release_artifact"
+    retry:
+      max_attempts: 3
+      delay: "exponential"
+      on_exhausted: "transition_to_error"
   - id: "create_pc"
     name: "Create PC"
     actor: "claude_agent"
     tool: "mcp_pcc"
+    input: "release"
     allowed_in_states:
       - "PC"
     output:
       artifact: "pc_artifact"
+    retry:
+      max_attempts: 3
+      delay: "exponential"
+      on_exhausted: "error_from_pc"
   - id: "create_ic"
     name: "Create IC"
     actor: "claude_agent"
     tool: "mcp_pcc"
+    input: "release"
     allowed_in_states:
       - "IC"
     output:
       artifact: "ic_artifact"
+    retry:
+      max_attempts: 3
+      delay: "exponential"
+      on_exhausted: "error_from_ic"
   - id: "create_qa"
     name: "Create QA"
     actor: "claude_agent"
     tool: "mcp_pcc"
+    input: "release"
     allowed_in_states:
       - "QA"
     output:
       artifact: "qa_artifact"
+    retry:
+      max_attempts: 3
+      delay: "exponential"
+      on_exhausted: "error_from_qa"
   - id: "approve_qa"
     name: "Approve QA"
     actor: "qa_lead"
     tool: "approval_ui"
+    input: "release"
     allowed_in_states:
       - "QA"
     output:
@@ -236,22 +365,33 @@ actions:
     name: "Create DEPLOY"
     actor: "claude_agent"
     tool: "mcp_pcc"
+    input: "release"
     allowed_in_states:
       - "DEPLOY"
     output:
       artifact: "deploy_artifact"
+    retry:
+      max_attempts: 3
+      delay: "exponential"
+      on_exhausted: "transition_to_error"
   - id: "create_bc_delta"
     name: "Create BC Delta"
     actor: "claude_agent"
     tool: "mcp_pcc"
+    input: "release"
     allowed_in_states:
       - "BC_DELTA"
     output:
       artifact: "bc_delta_artifact"
+    retry:
+      max_attempts: 3
+      delay: "exponential"
+      on_exhausted: "error_from_bc_delta"
   - id: "approve_bc_delta"
     name: "Approve BC Delta"
     actor: "product_owner"
     tool: "approval_ui"
+    input: "release"
     allowed_in_states:
       - "BC_DELTA"
     output:
@@ -260,14 +400,20 @@ actions:
     name: "Create AC Delta"
     actor: "claude_agent"
     tool: "mcp_pcc"
+    input: "release"
     allowed_in_states:
       - "AC_DELTA"
     output:
       artifact: "ac_delta_artifact"
+    retry:
+      max_attempts: 3
+      delay: "exponential"
+      on_exhausted: "error_from_ac_delta"
   - id: "approve_ac_delta"
     name: "Approve AC Delta"
     actor: "tech_lead"
     tool: "approval_ui"
+    input: "release"
     allowed_in_states:
       - "AC_DELTA"
     output:
@@ -276,14 +422,20 @@ actions:
     name: "Create PLAN FINALIZE"
     actor: "claude_agent"
     tool: "mcp_pcc"
+    input: "release"
     allowed_in_states:
       - "PLAN_FINALIZE"
     output:
       artifact: "plan_finalize_artifact"
+    retry:
+      max_attempts: 3
+      delay: "exponential"
+      on_exhausted: "error_from_plan_finalize"
   - id: "approve_plan_finalize"
     name: "Approve PLAN FINALIZE"
     actor: "team"
     tool: "approval_ui"
+    input: "release"
     allowed_in_states:
       - "PLAN_FINALIZE"
     output:
@@ -292,14 +444,20 @@ actions:
     name: "Create Apply Deltas"
     actor: "claude_agent"
     tool: "mcp_pcc"
+    input: "release"
     allowed_in_states:
       - "APPLY_DELTAS"
     output:
       artifact: "apply_deltas_artifact"
+    retry:
+      max_attempts: 3
+      delay: "exponential"
+      on_exhausted: "error_from_apply_deltas"
   - id: "handle_error"
     name: "Handle Error"
     actor: "claude_agent"
     tool: "mcp_pcc"
+    input: "release"
     allowed_in_states:
       - "ERROR"
     output:
@@ -308,6 +466,7 @@ actions:
     name: "Retry Phase"
     actor: "claude_agent"
     tool: "mcp_pcc"
+    input: "release"
     allowed_in_states:
       - "ERROR"
     output:
@@ -320,42 +479,49 @@ artifacts:
     type: "markdown"
     template: "templates/phases/RELEASE_TEMPLATE.md"
     created_by: "create_release"
+    entity_id: "release"
   - id: "pc_artifact"
     name: "PC_CONTEXT.md"
     type: "markdown"
     template: "templates/phases/PC_CONTEXT_TEMPLATE.md"
     created_by: "create_pc"
+    entity_id: "release"
   - id: "ic_artifact"
     name: "IC.md"
     type: "markdown"
     template: "templates/phases/IC_TEMPLATE.md"
     created_by: "create_ic"
+    entity_id: "release"
   - id: "qa_artifact"
     name: "QA_TESTING.md"
     type: "markdown"
     template: "templates/phases/QA_TESTING_TEMPLATE.md"
     created_by: "create_qa"
+    entity_id: "release"
   - id: "bc_delta_artifact"
     name: "BC_DELTA.md"
     type: "markdown"
     template: "templates/phases/BC_DELTA_TEMPLATE.md"
     created_by: "create_bc_delta"
+    entity_id: "release"
   - id: "ac_delta_artifact"
     name: "AC_DELTA.md"
     type: "markdown"
     template: "templates/phases/AC_DELTA_TEMPLATE.md"
     created_by: "create_ac_delta"
+    entity_id: "release"
   - id: "plan_finalize_artifact"
     name: "PLAN_FINALIZE.md"
     type: "markdown"
     template: "templates/phases/PLAN_FINALIZE_TEMPLATE.md"
     created_by: "create_plan_finalize"
+    entity_id: "release"
 
 # === FACTS (Events triggering transitions) ===
 facts:
   # === Transitions for bugfix_simple process: RELEASE → PC → IC → QA → DEPLOY ===
   - id: "release_to_pc"
-    name: "Release to PC (bugfix path)"
+    name: "Transitioned to PC (bugfix)"
     from_state: "RELEASE"
     to_state: "PC"
     triggered_by: "create_release"
@@ -377,7 +543,7 @@ facts:
 
   # === Transitions for feature_full process: RELEASE → BC_DELTA → AC_DELTA → ... ===
   - id: "release_to_bc"
-    name: "Release to BC Delta (feature path)"
+    name: "Transitioned to BC Delta (feature)"
     from_state: "RELEASE"
     to_state: "BC_DELTA"
     triggered_by: "create_release"
@@ -397,7 +563,7 @@ facts:
     to_state: "PC"
     triggered_by: "create_plan_finalize"
   - id: "qa_to_apply_deltas"
-    name: "QA to Apply Deltas (feature path)"
+    name: "Transitioned to Apply Deltas (feature)"
     from_state: "QA"
     to_state: "APPLY_DELTAS"
     triggered_by: "create_qa"
@@ -440,43 +606,43 @@ facts:
   # === Error handling facts ===
   # Error can occur from any Working/Waiting state
   - id: "error_from_pc"
-    name: "Error from PC"
+    name: "Failed at PC"
     from_state: "PC"
     to_state: "ERROR"
     triggered_by: "handle_error"
   - id: "error_from_ic"
-    name: "Error from IC"
+    name: "Failed at IC"
     from_state: "IC"
     to_state: "ERROR"
     triggered_by: "handle_error"
   - id: "error_from_qa"
-    name: "Error from QA"
+    name: "Failed at QA"
     from_state: "QA"
     to_state: "ERROR"
     triggered_by: "handle_error"
   - id: "error_from_bc_delta"
-    name: "Error from BC Delta"
+    name: "Failed at BC Delta"
     from_state: "BC_DELTA"
     to_state: "ERROR"
     triggered_by: "handle_error"
   - id: "error_from_ac_delta"
-    name: "Error from AC Delta"
+    name: "Failed at AC Delta"
     from_state: "AC_DELTA"
     to_state: "ERROR"
     triggered_by: "handle_error"
   - id: "error_from_plan_finalize"
-    name: "Error from Plan Finalize"
+    name: "Failed at Plan Finalize"
     from_state: "PLAN_FINALIZE"
     to_state: "ERROR"
     triggered_by: "handle_error"
   - id: "error_from_apply_deltas"
-    name: "Error from Apply Deltas"
+    name: "Failed at Apply Deltas"
     from_state: "APPLY_DELTAS"
     to_state: "ERROR"
     triggered_by: "handle_error"
   # Recovery from error - retry returns to PC (can be customized per error)
   - id: "retry_to_pc"
-    name: "Retry to PC"
+    name: "Retried to PC"
     from_state: "ERROR"
     to_state: "PC"
     triggered_by: "retry_phase"
@@ -579,12 +745,94 @@ rules:
     condition: "validator(\"qa_coverage_met\") == true"
     scope: "state(QA)"
     on_violation: "Block"
+  # === Guard rules for approval-based transitions ===
+  - id: "bc_requires_approval"
+    name: "BC Delta Requires Approval"
+    type: "Guard"
+    condition: "fact_exists('bc_delta_approved')"
+    scope: "transition(BC_DELTA -> AC_DELTA)"
+    on_violation: "Block"
+  - id: "ac_requires_approval"
+    name: "AC Delta Requires Approval"
+    type: "Guard"
+    condition: "fact_exists('ac_delta_approved')"
+    scope: "transition(AC_DELTA -> PLAN_FINALIZE)"
+    on_violation: "Block"
+  - id: "plan_requires_approval"
+    name: "Plan Requires Approval"
+    type: "Guard"
+    condition: "fact_exists('plan_finalize_approved')"
+    scope: "transition(PLAN_FINALIZE -> PC)"
+    on_violation: "Block"
+  - id: "qa_requires_approval"
+    name: "QA Requires Approval"
+    type: "Guard"
+    condition: "fact_exists('qa_approved')"
+    scope: "transition(QA -> DEPLOY)"
+    on_violation: "Block"
+
+# === PHASE DEFAULTS (SSOT for process generation) ===
+phase_defaults:
+  RELEASE:
+    template: "RELEASE_TEMPLATE.md"
+    validators:
+      - "release_state_valid_schema"
+      - "release_has_problem"
+      - "release_has_scope"
+    skip_allowed: false
+  PC:
+    template: "PC_CONTEXT_TEMPLATE.md"
+    validators:
+      - "pc_has_implementation"
+      - "pc_has_5_ics"
+    skip_allowed: false
+  IC:
+    template: "IC_TEMPLATE.md"
+    validators:
+      - "all_ics_validated"
+      - "no_p0_violations"
+    skip_allowed: false
+  QA:
+    template: "QA_TESTING_TEMPLATE.md"
+    validators:
+      - "qa_tests_passed"
+      - "qa_coverage_met"
+    approval_role: "qa_lead"
+    skip_allowed: false
+  DEPLOY:
+    skip_allowed: false
+  BC_DELTA:
+    template: "BC_DELTA_TEMPLATE.md"
+    validators:
+      - "bc_has_goals"
+      - "bc_has_actors"
+      - "bc_has_scenarios"
+    approval_role: "product_owner"
+    skip_allowed: false
+  AC_DELTA:
+    template: "AC_DELTA_TEMPLATE.md"
+    validators:
+      - "ac_has_use_cases"
+      - "ac_based_on_bc"
+    approval_role: "tech_lead"
+    skip_allowed: false
+  PLAN_FINALIZE:
+    template: "PLAN_FINALIZE_TEMPLATE.md"
+    validators:
+      - "plan_has_tasks"
+      - "tasks_estimated"
+    approval_role: "team"
+    skip_allowed: false
+  APPLY_DELTAS:
+    skip_allowed: false
 
 # === PROCESSES (Predefined State compositions) ===
 processes:
   - id: "bugfix_simple"
-    description: "Simplified process for bug fixes. Skips BC/AC analysis, goes straight to implementation: PC → IC → QA →
-      DEPLOY. Use for straightforward bug fixes that don't require business context analysis."
+    version: "1.0.0"
+    name: "Bugfix (Simple)"
+    type: "bugfix"
+    description: "Simplified process for bug fixes. Skips BC/AC analysis, goes straight to implementation: PC → IC → QA → DEPLOY. Use for straightforward bug fixes that don't require business context analysis."
     states_sequence:
       - "RELEASE"
       - "PC"
@@ -592,12 +840,20 @@ processes:
       - "QA"
       - "DEPLOY"
     approval_points:
-      - "QA"
-    skip_allowed: []
+      QA:
+        role: "qa_lead"
+    nodes:
+      "sccu:workflow-engine": "^1.0.0"
+      "sccu:workflow-phase-templates": "^1.0.0"
+      "sccu:workflow-process-definitions": "^1.0.0"
+      "sccu:workflow-mcp-server": "^1.0.0"
+      "sccu:workflow-automation-skills": "^1.0.0"
+
   - id: "feature_full"
-    description: "Full feature development process with all phases. Use for new features with business context,
-      architecture, and full validation. Includes BC/AC analysis, planning, implementation, infrastructure validation,
-      QA testing, and deployment."
+    version: "1.0.0"
+    name: "Feature Development (Full)"
+    type: "feature_development"
+    description: "Full feature development process with all phases. Use for new features with business context, architecture, and full validation. Includes BC/AC analysis, planning, implementation, infrastructure validation, QA testing, and deployment."
     states_sequence:
       - "RELEASE"
       - "BC_DELTA"
@@ -609,14 +865,27 @@ processes:
       - "APPLY_DELTAS"
       - "DEPLOY"
     approval_points:
-      - "BC_DELTA"
-      - "AC_DELTA"
-      - "PLAN_FINALIZE"
-      - "QA"
-    skip_allowed: []
+      BC_DELTA:
+        role: "product_owner"
+      AC_DELTA:
+        role: "tech_lead"
+      PLAN_FINALIZE:
+        role: "team"
+      QA:
+        role: "qa_lead"
+    nodes:
+      "sccu:workflow-engine": "^1.0.0"
+      "sccu:workflow-phase-templates": "^1.0.0"
+      "sccu:workflow-process-definitions": "^1.0.0"
+      "sccu:workflow-mcp-server": "^1.0.0"
+      "sccu:workflow-automation-skills": "^1.0.0"
+      "sccu:architecture-domains": "^1.0.0"
+
   - id: "feature_full_auto"
-    description: "Full feature development process with NO human approvals. All phases execute automatically. Use ONLY when
-      human has pre-approved the entire feature scope and trusts LLM to make all decisions."
+    version: "1.0.0"
+    name: "Feature Development (Full, Autonomous)"
+    type: "feature_development"
+    description: "Full feature development process with NO human approvals. All phases execute automatically. Use ONLY when human has pre-approved the entire feature scope and trusts LLM to make all decisions."
     states_sequence:
       - "RELEASE"
       - "BC_DELTA"
@@ -627,5 +896,11 @@ processes:
       - "QA"
       - "APPLY_DELTAS"
       - "DEPLOY"
-    approval_points: []
-    skip_allowed: []
+    approval_points: {}
+    nodes:
+      "sccu:workflow-engine": "^1.0.0"
+      "sccu:workflow-phase-templates": "^1.0.0"
+      "sccu:workflow-process-definitions": "^1.0.0"
+      "sccu:workflow-mcp-server": "^1.0.0"
+      "sccu:workflow-automation-skills": "^1.0.0"
+      "sccu:architecture-domains": "^1.0.0"

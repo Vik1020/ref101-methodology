@@ -7,41 +7,44 @@
   "phases": [
     {
       "id": "RELEASE",
+      "skip_allowed": false,
       "template": "RELEASE_TEMPLATE.md",
       "validators": [
         "release_state_valid_schema",
-        "release_has_problem"
-      ],
-      "skip_allowed": false
+        "release_has_problem",
+        "release_has_scope"
+      ]
     },
     {
       "id": "PC",
+      "skip_allowed": false,
       "template": "PC_CONTEXT_TEMPLATE.md",
       "validators": [
         "pc_has_implementation",
         "pc_has_5_ics"
-      ],
-      "skip_allowed": false
+      ]
     },
     {
       "id": "IC",
+      "skip_allowed": false,
       "template": "IC_TEMPLATE.md",
       "validators": [
-        "all_ics_validated"
-      ],
-      "skip_allowed": false
+        "all_ics_validated",
+        "no_p0_violations"
+      ]
     },
     {
       "id": "QA",
+      "skip_allowed": false,
       "template": "QA_TESTING_TEMPLATE.md",
       "validators": [
-        "qa_tests_passed"
+        "qa_tests_passed",
+        "qa_coverage_met"
       ],
       "approval": {
         "required": true,
         "role": "qa_lead"
-      },
-      "skip_allowed": false
+      }
     },
     {
       "id": "DEPLOY",

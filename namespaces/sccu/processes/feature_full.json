@@ -7,16 +7,17 @@
   "phases": [
     {
       "id": "RELEASE",
+      "skip_allowed": false,
       "template": "RELEASE_TEMPLATE.md",
       "validators": [
         "release_state_valid_schema",
         "release_has_problem",
         "release_has_scope"
-      ],
-      "skip_allowed": false
+      ]
     },
     {
       "id": "BC_delta",
+      "skip_allowed": false,
       "template": "BC_DELTA_TEMPLATE.md",
       "validators": [
         "bc_has_goals",
@@ -26,11 +27,11 @@
       "approval": {
         "required": true,
         "role": "product_owner"
-      },
-      "skip_allowed": false
+      }
     },
     {
       "id": "AC_delta",
+      "skip_allowed": false,
       "template": "AC_DELTA_TEMPLATE.md",
       "validators": [
         "ac_has_use_cases",
@@ -39,11 +40,11 @@
       "approval": {
         "required": true,
         "role": "tech_lead"
-      },
-      "skip_allowed": false
+      }
     },
     {
       "id": "PLAN_FINALIZE",
+      "skip_allowed": false,
       "template": "PLAN_FINALIZE_TEMPLATE.md",
       "validators": [
         "plan_has_tasks",
@@ -52,29 +53,29 @@
       "approval": {
         "required": true,
         "role": "team"
-      },
-      "skip_allowed": false
+      }
     },
     {
       "id": "PC",
+      "skip_allowed": false,
       "template": "PC_CONTEXT_TEMPLATE.md",
       "validators": [
         "pc_has_implementation",
         "pc_has_5_ics"
-      ],
-      "skip_allowed": false
+      ]
     },
     {
       "id": "IC",
+      "skip_allowed": false,
       "template": "IC_TEMPLATE.md",
       "validators": [
         "all_ics_validated",
         "no_p0_violations"
-      ],
-      "skip_allowed": false
+      ]
     },
     {
       "id": "QA",
+      "skip_allowed": false,
       "template": "QA_TESTING_TEMPLATE.md",
       "validators": [
         "qa_tests_passed",
@@ -83,8 +84,7 @@
       "approval": {
         "required": true,
         "role": "qa_lead"
-      },
-      "skip_allowed": false
+      }
     },
     {
       "id": "APPLY_DELTAS",
