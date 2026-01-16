@@ -27,8 +27,9 @@ program
 
 program
   .command('visualize <namespace>')
-  .description('Generate state machine diagram from methodology')
-  .option('-f, --format <format>', 'Output format: mermaid (default: mermaid)', 'mermaid')
+  .description('Generate diagrams from methodology')
+  .option('-f, --format <format>', 'Output format: mermaid, plantuml (default: mermaid)', 'mermaid')
+  .option('-t, --type <type>', 'Diagram type: state, actors, artifacts (default: state)', 'state')
   .option('-o, --output <path>', 'Output file path (default: stdout)')
   .action(visualizeCommand);
 
