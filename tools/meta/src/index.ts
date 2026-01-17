@@ -31,8 +31,9 @@ program
 program
   .command('visualize <namespace>')
   .description('Generate diagrams from methodology')
-  .option('-f, --format <format>', 'Output format: mermaid, plantuml (default: mermaid)', 'mermaid')
-  .option('-t, --type <type>', 'Diagram type: state, actors, artifacts (default: state)', 'state')
+  .option('-f, --format <format>', 'Output format: mermaid, plantuml, drawio (default: mermaid)', 'mermaid')
+  .option('-t, --type <type>', 'Diagram type: state, actors, artifacts, processes (default: state)', 'state')
+  .option('-l, --level <level>', 'For drawio: overview, detail, full (default: full)', 'full')
   .option('-o, --output <path>', 'Output file path (default: stdout)')
   .action(visualizeCommand);
 

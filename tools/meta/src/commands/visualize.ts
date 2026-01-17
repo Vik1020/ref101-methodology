@@ -664,6 +664,8 @@ const DRAWIO_STYLES = {
   note: 'shape=note;whiteSpace=wrap;html=1;fillColor=#FFFFCC;strokeColor=#CCCC00;fontSize=10;align=left;',
   actionCard: 'rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F4EA;strokeColor=#4A7C59;fontSize=9;align=left;verticalAlign=top;spacing=5;',
   legend: 'rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF9E6;strokeColor=#D4A017;fontSize=10;align=left;verticalAlign=top;spacing=8;',
+  artifact: 'shape=document;whiteSpace=wrap;html=1;fillColor=#E6F3FF;strokeColor=#336699;fontSize=8;align=center;verticalAlign=middle;',
+  entity: 'rounded=1;whiteSpace=wrap;html=1;fillColor=#F0E6FF;strokeColor=#663399;fontSize=11;fontStyle=1;align=center;verticalAlign=middle;',
 };
 
 interface DrawioCell {
@@ -960,6 +962,24 @@ function generateDrawioDetailPage(process: ProcessDefinition, methodology: Metho
           height: ACTION_CARD_HEIGHT,
         },
       });
+
+      // Add Artifact icon if action creates one
+      const artifact = methodology.artifacts?.find(a => a.created_by === action.id);
+      if (artifact) {
+        cells.push({
+          id: `artifact_${cellIdCounter++}`,
+          value: `📄 ${artifact.name}`,
+          style: DRAWIO_STYLES.artifact,
+          vertex: true,
+          parent: '1',
+          geometry: {
+            x: phaseX + DRAWIO_LAYOUT.PHASE_WIDTH + 15,
+            y: phaseY + DRAWIO_LAYOUT.PHASE_HEIGHT + 20,
+            width: 70,
+            height: 35,
+          },
+        });
+      }
     } else if (phase.validators && phase.validators.length > 0) {
       // Fallback: show validators if no actions
       const noteId = `note_${cellIdCounter++}`;
@@ -1059,6 +1079,21 @@ function generateDrawioDetailPage(process: ProcessDefinition, methodology: Metho
     parent: '1',
     geometry: { x: 50, y: 10, width: 400, height: 30 },
   });
+
+  // Entity subtitle (primary entity from methodology)
+  if (methodology?.entities) {
+    const primaryEntity = methodology.entities.find(e => e.role === 'primary') || methodology.entities[0];
+    if (primaryEntity) {
+      cells.push({
+        id: `entity_${cellIdCounter++}`,
+        value: `📦 Entity: ${primaryEntity.type || primaryEntity.id}`,
+        style: DRAWIO_STYLES.entity,
+        vertex: true,
+        parent: '1',
+        geometry: { x: 50, y: 35, width: 150, height: 22 },
+      });
+    }
+  }
 
   // Legend at bottom
   if (methodology && (usedActorIds.size > 0 || usedToolIds.size > 0)) {
