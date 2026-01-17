@@ -1,11 +1,31 @@
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import YAML from 'yaml';
 import { getProjectRoot, namespaceExists, getAvailableNamespaces } from '../lib/parser.js';
 import type { Methodology } from '../lib/types.js';
 
 type DiagramFormat = 'mermaid' | 'plantuml';
-type DiagramType = 'state' | 'actors' | 'artifacts';
+type DiagramType = 'state' | 'actors' | 'artifacts' | 'processes';
+
+// Process ordering by lifecycle
+const PROCESS_ORDER: Record<string, string[]> = {
+  meta: ['methodology_creation', 'methodology_validation', 'methodology_migration', 'methodology_evolution'],
+  sccu: ['feature_full', 'feature_full_auto', 'bugfix_simple'],
+};
+
+interface ProcessPhase {
+  id: string;
+  name?: string;
+  type?: string;
+  approval?: { required: boolean; role: string };
+  on_failure?: string;
+}
+
+interface ProcessDefinition {
+  process_id: string;
+  name: string;
+  phases: ProcessPhase[];
+}
 
 interface VisualizeOptions {
   format?: DiagramFormat;
@@ -63,7 +83,7 @@ export async function visualizeCommand(namespace: string, options: VisualizeOpti
   let output: string;
 
   if (format === 'mermaid') {
-    output = generateMermaid(methodology, diagramType);
+    output = generateMermaid(methodology, diagramType, namespace);
   } else if (format === 'plantuml') {
     output = generatePlantUML(methodology, diagramType);
   } else {
@@ -94,7 +114,7 @@ export async function visualizeCommand(namespace: string, options: VisualizeOpti
 
 // ============== MERMAID GENERATORS ==============
 
-function generateMermaid(m: Methodology, type: DiagramType): string {
+function generateMermaid(m: Methodology, type: DiagramType, namespace?: string): string {
   switch (type) {
     case 'state':
       return generateMermaidStateDiagram(m);
@@ -102,6 +122,8 @@ function generateMermaid(m: Methodology, type: DiagramType): string {
       return generateMermaidActorDiagram(m);
     case 'artifacts':
       return generateMermaidArtifactDiagram(m);
+    case 'processes':
+      return generateMermaidProcessesDiagram(namespace || m.methodology_id);
     default:
       return generateMermaidStateDiagram(m);
   }
@@ -323,6 +345,115 @@ function generateMermaidArtifactDiagram(m: Methodology): string {
   }
 
   return lines.join('\n');
+}
+
+function generateMermaidProcessesDiagram(namespace: string): string {
+  const lines: string[] = ['flowchart TB'];
+  lines.push('');
+  lines.push('    %% All processes for ' + namespace);
+
+  // Load all processes/*.json from namespace
+  const processesDir = join(getProjectRoot(), 'namespaces', namespace, 'processes');
+
+  if (!existsSync(processesDir)) {
+    return `%% No processes directory found for namespace: ${namespace}`;
+  }
+
+  const processFiles = readdirSync(processesDir).filter(f => f.endsWith('.json'));
+
+  if (processFiles.length === 0) {
+    return `%% No process files found in: ${processesDir}`;
+  }
+
+  // Load processes (filter out schema files - they don't have process_id)
+  const processes: ProcessDefinition[] = processFiles
+    .map(f => {
+      const content = readFileSync(join(processesDir, f), 'utf-8');
+      return JSON.parse(content) as ProcessDefinition;
+    })
+    .filter(p => p.process_id); // Skip schema files
+
+  if (processes.length === 0) {
+    return `%% No valid process definitions found in: ${processesDir}`;
+  }
+
+  // Sort by lifecycle order
+  const order = PROCESS_ORDER[namespace] || processes.map(p => p.process_id);
+  processes.sort((a, b) => {
+    const aIdx = order.indexOf(a.process_id);
+    const bIdx = order.indexOf(b.process_id);
+    return (aIdx === -1 ? 999 : aIdx) - (bIdx === -1 ? 999 : bIdx);
+  });
+
+  let processIndex = 1;
+  for (const process of processes) {
+    // Create unique prefix: take first letter of each word in process_id
+    const prefix = process.process_id.split('_').map(w => w[0]).join('');
+
+    lines.push('');
+    lines.push(`    subgraph ${process.process_id}["${processIndex}. ${process.name}"]`);
+    lines.push('        direction LR');
+
+    // Separate main phases from error phase
+    const mainPhases = process.phases.filter(p => p.type !== 'Error');
+    const errorPhase = process.phases.find(p => p.type === 'Error');
+
+    // Build chain of main phases
+    if (mainPhases.length > 0) {
+      const chainParts: string[] = [];
+      for (let i = 0; i < mainPhases.length; i++) {
+        const phase = mainPhases[i];
+        const nodeId = `${prefix}_${phase.id}`;
+        // Infer type from position if not specified
+        const inferredType = phase.type || (i === 0 ? 'Initial' : i === mainPhases.length - 1 ? 'Terminal' : 'Working');
+        const shape = getProcessPhaseShape({ ...phase, type: inferredType });
+        const style = getProcessPhaseStyle({ ...phase, type: inferredType });
+        chainParts.push(`${nodeId}${shape}${style}`);
+      }
+      lines.push(`        ${chainParts.join(' --> ')}`);
+    }
+
+    // Add error phase and transitions
+    if (errorPhase) {
+      const errorNodeId = `${prefix}_${errorPhase.id}`;
+      lines.push(`        ${errorNodeId}([${errorPhase.id}]):::error`);
+
+      // Add on_failure transitions
+      for (const phase of process.phases) {
+        if (phase.on_failure) {
+          lines.push(`        ${prefix}_${phase.id} -.-> ${prefix}_${phase.on_failure}`);
+        }
+      }
+    }
+
+    lines.push('    end');
+    processIndex++;
+  }
+
+  // Add styling
+  lines.push('');
+  lines.push('    %% Styling');
+  lines.push('    classDef initial fill:#90EE90,stroke:#333');
+  lines.push('    classDef terminal fill:#87CEEB,stroke:#333');
+  lines.push('    classDef error fill:#FA8072,stroke:#333');
+  lines.push('    classDef approval fill:#FFD700,stroke:#333');
+
+  return lines.join('\n');
+}
+
+function getProcessPhaseShape(phase: ProcessPhase): string {
+  if (phase.type === 'Initial' || phase.type === 'Terminal' || phase.type === 'Error') {
+    return `([${phase.id}])`;
+  }
+  return `[${phase.id}]`;
+}
+
+function getProcessPhaseStyle(phase: ProcessPhase): string {
+  if (phase.type === 'Initial') return ':::initial';
+  if (phase.type === 'Terminal') return ':::terminal';
+  if (phase.type === 'Error') return ':::error';
+  if (phase.approval?.required) return ':::approval';
+  return '';
 }
 
 // ============== PLANTUML GENERATORS ==============
