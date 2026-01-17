@@ -30,6 +30,20 @@ node tools/init/dist/index.js --methodology sccu --bundle minimal --methodology-
 
 CLI location: `tools/init/`
 
+## Namespace: Meta
+
+Meta-methodology for describing human-AI processes. 8 invariant elements:
+State, Actor, Tool, Action, Entity, Artifact, Fact, Rule.
+
+Key files:
+- `namespaces/meta/methodology.yaml` - Self-describing methodology
+- `namespaces/meta/README.md` - Full specification
+- `namespaces/meta/schema/` - Validation schema
+
+Skills:
+- `/meta-new-methodology` - Create new namespace
+- `/meta-validate` - Validate methodology.yaml
+
 ## Namespace: SCCU
 
 Self-Contained Context Unit methodology with 8-phase workflow:
@@ -50,6 +64,8 @@ Bundle: minimal
 - /hotfix
 - /new-feature
 - /new-release-auto
+- /meta-new-methodology
+- /meta-validate
 
 ### Processes
 

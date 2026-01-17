@@ -1,0 +1,28 @@
+# Meta-Methodology Namespace Definition
+namespace_id: meta
+version: "1.0.0"
+name: "Meta-Methodology"
+description: |
+  Meta-methodology for describing human-AI processes.
+  Provides 8 invariant elements: State, Actor, Tool, Action, Entity, Artifact, Fact, Rule.
+
+  Key principles:
+  - Semantic alignment: Unified vocabulary for humans and AI
+  - Actor agnostic: Same rules for Human, AI, System
+  - Explicit over implicit: Every element is named, typed, connected
+
+phases:
+  - DESIGN
+  - VALIDATE
+  - PUBLISH
+
+bundles:
+  minimal:
+    path: bundles/minimal.yaml
+    description: "Basic meta-methodology tools"
+
+skills:
+  - meta-new-methodology
+  - meta-validate
+
+processes: []

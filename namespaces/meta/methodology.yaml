@@ -1,0 +1,241 @@
+# =============================================================================
+# METHODOLOGY: Meta-Methodology (Self-Describing)
+# =============================================================================
+# This file describes the meta-methodology using its own 8 elements.
+# This demonstrates self-applicability: meta-methodology is a valid methodology.
+#
+# For documentation, see: namespaces/meta/README.md
+# Schema: namespaces/meta/schema/meta-methodology.schema.yaml
+# =============================================================================
+
+methodology_id: "meta"
+version: "1.0.0"
+name: "Meta-Methodology"
+meta_version: "3.1"
+description: |
+  Invariant framework for describing any human-AI process.
+  8 elements: State, Actor, Tool, Action, Entity, Artifact, Fact, Rule.
+
+# === ENTITIES (Business objects passing through States) ===
+entities:
+  - id: "methodology"
+    type: "Methodology"
+    role: "primary"
+    schema:
+      methodology_id: "string (required)"
+      version: "string (required)"
+      name: "string (required)"
+      states: "array (required)"
+      actors: "array (required)"
+      actions: "array (required)"
+      facts: "array (required)"
+
+# === STATES (Lifecycle phases) ===
+states:
+  - id: "DESIGN"
+    name: "Design"
+    type: "Initial"
+    allowed_actions:
+      - "define_elements"
+    exit_conditions:
+      - "elements_defined"
+
+  - id: "VALIDATE"
+    name: "Validate"
+    type: "Working"
+    allowed_actions:
+      - "validate_methodology"
+    entry_conditions:
+      - "elements_defined"
+    exit_conditions:
+      - "validation_passed"
+      - "validation_failed"
+
+  - id: "PUBLISH"
+    name: "Published"
+    type: "Terminal"
+    allowed_actions: []
+    entry_conditions:
+      - "validation_passed"
+
+  - id: "ERROR"
+    name: "Error"
+    type: "Error"
+    allowed_actions:
+      - "fix_errors"
+    entry_conditions:
+      - "validation_failed"
+    exit_conditions:
+      - "errors_fixed"
+
+# === ACTORS (Executors: Human, AI, System) ===
+actors:
+  - id: "methodology_designer"
+    name: "Methodology Designer"
+    type: "Human"
+    tools:
+      - "yaml_editor"
+    permissions:
+      - "define_elements"
+      - "fix_errors"
+
+  - id: "claude_agent"
+    name: "Claude Code Agent"
+    type: "AI"
+    tools:
+      - "meta_cli"
+      - "yaml_editor"
+    permissions:
+      - "validate_methodology"
+      - "define_elements"
+
+# === TOOLS (Instruments for Actions) ===
+tools:
+  - id: "yaml_editor"
+    name: "YAML Editor"
+    type: "Script"
+    compatible_actors:
+      - "Human"
+      - "AI"
+    operations:
+      - "read"
+      - "write"
+      - "edit"
+
+  - id: "meta_cli"
+    name: "ref101-meta CLI"
+    type: "Script"
+    compatible_actors:
+      - "AI"
+    operations:
+      - "validate"
+      - "extract"
+      - "generate"
+      - "visualize"
+
+# === ACTIONS (Units of work) ===
+actions:
+  - id: "define_elements"
+    name: "Define Elements"
+    actor: "methodology_designer"
+    tool: "yaml_editor"
+    input: "methodology"
+    allowed_in_states:
+      - "DESIGN"
+    output:
+      fact: "elements_defined"
+
+  - id: "validate_methodology"
+    name: "Validate Methodology"
+    actor: "claude_agent"
+    tool: "meta_cli"
+    input: "methodology"
+    allowed_in_states:
+      - "VALIDATE"
+    output:
+      fact: "validation_passed"
+    retry:
+      max_attempts: 3
+      delay: "fixed"
+      on_exhausted: "validation_failed"
+
+  - id: "fix_errors"
+    name: "Fix Errors"
+    actor: "methodology_designer"
+    tool: "yaml_editor"
+    input: "methodology"
+    allowed_in_states:
+      - "ERROR"
+    output:
+      fact: "errors_fixed"
+
+# === ARTIFACTS (Files/documents created) ===
+artifacts:
+  - id: "methodology_yaml"
+    name: "methodology.yaml"
+    type: "yaml"
+    template: "templates/methodology_template.yaml"
+    created_by: "define_elements"
+    entity_id: "methodology"
+
+  - id: "validation_report"
+    name: "validation_report.md"
+    type: "markdown"
+    created_by: "validate_methodology"
+    entity_id: "methodology"
+
+# === FACTS (Events triggering transitions) ===
+facts:
+  - id: "elements_defined"
+    name: "Elements Defined"
+    from_state: "DESIGN"
+    to_state: "VALIDATE"
+    triggered_by: "define_elements"
+
+  - id: "validation_passed"
+    name: "Validation Passed"
+    from_state: "VALIDATE"
+    to_state: "PUBLISH"
+    triggered_by: "validate_methodology"
+
+  - id: "validation_failed"
+    name: "Validation Failed"
+    from_state: "VALIDATE"
+    to_state: "ERROR"
+    triggered_by: "validate_methodology"
+
+  - id: "errors_fixed"
+    name: "Errors Fixed"
+    from_state: "ERROR"
+    to_state: "VALIDATE"
+    triggered_by: "fix_errors"
+
+# === RULES (Constraints and conditions) ===
+rules:
+  - id: "required_elements"
+    name: "All Required Elements Present"
+    type: "Precondition"
+    condition: "methodology.states.length >= 2 AND methodology.actors.length >= 1"
+    scope: "action(validate_methodology)"
+    on_violation: "Block"
+
+  - id: "initial_state_exists"
+    name: "Exactly One Initial State"
+    type: "Invariant"
+    condition: "count(states where type == 'Initial') == 1"
+    scope: "state(VALIDATE)"
+    on_violation: "Block"
+
+  - id: "terminal_state_exists"
+    name: "At Least One Terminal State"
+    type: "Invariant"
+    condition: "count(states where type == 'Terminal') >= 1"
+    scope: "state(VALIDATE)"
+    on_violation: "Block"
+
+  - id: "no_deadlocks"
+    name: "No Deadlock States"
+    type: "Invariant"
+    condition: "all non-Terminal states have exit transitions"
+    scope: "state(VALIDATE)"
+    on_violation: "Block"
+
+  - id: "max_fix_iterations"
+    name: "Maximum Fix Iterations"
+    type: "Constraint"
+    condition: "entity.fix_count <= 5"
+    scope: "transition(ERROR -> VALIDATE)"
+    on_violation: "Redirect"
+    redirect_to: "DESIGN"
+
+# === PROCESSES (Predefined State compositions) ===
+processes:
+  - id: "methodology_creation"
+    version: "1.0.0"
+    name: "Methodology Creation"
+    description: "Create and validate a new methodology"
+    states_sequence:
+      - "DESIGN"
+      - "VALIDATE"
+      - "PUBLISH"
+    approval_points: {}

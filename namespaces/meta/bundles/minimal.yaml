@@ -1,0 +1,16 @@
+# =============================================================================
+# BUNDLE: Meta-Methodology Minimal
+# =============================================================================
+# Basic meta-methodology tools for creating and validating methodologies.
+# =============================================================================
+
+bundle_id: meta-minimal
+methodology: meta
+version: "1.0.0"
+description: "Basic meta-methodology tools"
+
+includes:
+  skills:
+    - meta-new-methodology
+    - meta-validate
+  processes: []
