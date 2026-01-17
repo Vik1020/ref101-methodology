@@ -185,7 +185,7 @@ pcc rebuild-domain <name>                       # Recovery
 ## Navigation
 
 - Full index: `specifications/INDEX.md`
-- Glossary: `specifications/GLOSSARY.md`
+- Glossary: `namespaces/sccu/GLOSSARY.md`
 - Setup guide: `specifications/SETUP_GUIDE.md`
 - All templates: `specifications/templates/`
 - All ICs: `specifications/infrastructure/`

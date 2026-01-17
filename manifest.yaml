@@ -20,8 +20,8 @@ core_files:
     description: "Main instruction for developers and LLM"
   - path: core/WORKFLOW.md
     description: "8-phase workflow definition"
-  - path: core/GLOSSARY.md
-    description: "Terms: BC, AC, PC, IC, CCC, PA"
+  - path: namespaces/sccu/GLOSSARY.md
+    description: "SCCU glossary: BC, AC, PC, IC, CCC, PA (migrated from core/)"
   - path: core/QUICK_REFERENCE.md
     description: "P0 rules and checklist"
 
