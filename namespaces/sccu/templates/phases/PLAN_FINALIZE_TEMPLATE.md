@@ -55,7 +55,7 @@ skip_forbidden:
 transition:
   requires_approval: true
   approver: Team
-  next_phase: PC_DEVELOPMENT
+  next_phase: PC
 # ═══════════════════════════════════════════════════════════════════════════════
 
 reviewed_deltas:
@@ -208,7 +208,7 @@ TASK_001 ──► TASK_002 ──► TASK_010 ──► TASK_011
 > **Next Steps:**
 > 1. Get Team approval on this plan
 > 2. Update Release context with tasks: `tasks:` section
-> 3. Transition to PC_DEVELOPMENT phase
+> 3. Transition to PC phase
 > 4. Start with tasks on critical path
 
 ---
@@ -225,7 +225,7 @@ TASK_001 ──► TASK_002 ──► TASK_010 ──► TASK_011
 3. Estimate each task
 4. Add tasks to RELEASE context
 5. Get Team approval
-6. Transition to PC_DEVELOPMENT
+6. Transition to PC
 
 ### Validators
 
@@ -248,4 +248,4 @@ TASK_001 ──► TASK_002 ──► TASK_010 ──► TASK_011
 
 ### Transition
 
-**PLAN_FINALIZE → PC_DEVELOPMENT** (requires Team approval)
+**PLAN_FINALIZE → PC** (requires Team approval)

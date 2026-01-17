@@ -42,8 +42,8 @@
             "description": "Phase identifier",
             "enum": [
               "RELEASE",
-              "BC_delta",
-              "AC_delta",
+              "BC_DELTA",
+              "AC_DELTA",
               "PLAN_FINALIZE",
               "PC",
               "IC",

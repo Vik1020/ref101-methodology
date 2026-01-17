@@ -80,7 +80,7 @@ Args: {
 **ВАЖНО:** Для каждого артефакта используй `pcc_create_artifact` с `auto_transition: true`.
 НЕ используй Edit для создания BC_delta, AC_delta и других workflow-файлов.
 
-#### Phase: BC_DRAFT
+#### Phase: BC_DELTA
 
 ```
 Call: pcc_create_artifact
@@ -94,7 +94,7 @@ Args: {
 
 Content должен включать: Goals, Actors, Features, Scenarios
 
-#### Phase: AC_DRAFT
+#### Phase: AC_DELTA
 
 ```
 Call: pcc_create_artifact
@@ -131,33 +131,33 @@ Args: {
 | T2 | Another task | path/to/other.ts | Low |
 ```
 
-Валидатор `plan_has_tasks` ищет строки `| T1 |`, `| T2 |` и т.д. Без этой таблицы переход в PC_DEVELOPMENT будет заблокирован.
+Валидатор `plan_has_tasks` ищет строки `| T1 |`, `| T2 |` и т.д. Без этой таблицы переход в PC будет заблокирован.
 
 Также включить: Task Breakdown (детали), Dependencies, Risks
 
-#### Phase: PC_DEVELOPMENT
+#### Phase: PC
 
 1. Implement the feature (write code via Edit)
 2. Transition manually after implementation:
 
 ```
 Call: pcc_workflow_transition
-Args: { release_id: "v{X.Y.Z}", to_phase: "IC_VALIDATION" }
+Args: { release_id: "v{X.Y.Z}", to_phase: "IC" }
 ```
 
-#### Phase: IC_VALIDATION
+#### Phase: IC
 
 ```
 Call: pcc_create_artifact
 Args: {
   release_id: "v{X.Y.Z}",
   artifact_type: "IC",
-  content: "<full IC_VALIDATION markdown content>",
+  content: "<full IC markdown content>",
   auto_transition: true
 }
 ```
 
-#### Phase: QA_TESTING
+#### Phase: QA
 
 ```
 Call: pcc_create_artifact
@@ -237,10 +237,10 @@ Claude: Начинаю релиз v1.21.0 по процессу feature_full_aut
 
 [pcc_create_artifact BC_delta, auto_transition: true] → success
   - File: docs/releases/v1.21.0/BC_delta_dark_theme.md
-  - Transitioned: RELEASE → BC_DRAFT
+  - Transitioned: RELEASE → BC_DELTA
 
 [pcc_create_artifact AC_delta, auto_transition: true] → success
-  - Transitioned: BC_DRAFT → AC_DRAFT
+  - Transitioned: BC_DELTA → AC_DELTA
 
 ... continues through all phases ...
 

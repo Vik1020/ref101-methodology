@@ -26,9 +26,9 @@ RELEASE → PC → IC → QA → DEPLOY
                  [QA Lead]
 ```
 
-**Skipped phases:** BC_DRAFT, AC_DRAFT, PLAN_FINALIZE, APPLY_DELTAS
+**Skipped phases:** BC_DELTA, AC_DELTA, PLAN_FINALIZE, APPLY_DELTAS
 
-**Approvals:** Only QA_TESTING (QA Lead)
+**Approvals:** Only QA (QA Lead)
 
 ## ⚠️ Plan Mode Constraint
 
@@ -106,32 +106,32 @@ Args: {
 
 Follow `bugfix_simple` process:
 
-#### Phase: PC_DEVELOPMENT
+#### Phase: PC
 
 1. Transition to PC phase:
 ```
 Call: pcc_workflow_transition
-Args: { release_id: "v{X.Y.Z}", to_phase: "PC_DEVELOPMENT" }
+Args: { release_id: "v{X.Y.Z}", to_phase: "PC" }
 ```
 
 2. Implement the fix (write code via Edit)
 3. Create `src/{component}/context.md` if needed
 
-#### Phase: IC_VALIDATION
+#### Phase: IC
 
 ```
 Call: pcc_create_artifact
 Args: {
   release_id: "v{X.Y.Z}",
   artifact_type: "IC",
-  content: "<full IC_VALIDATION markdown content>",
+  content: "<full IC markdown content>",
   auto_transition: true
 }
 ```
 
 Validate: Fix correctness, No regressions, Security
 
-#### Phase: QA_TESTING (⏸️ APPROVAL: QA Lead)
+#### Phase: QA (⏸️ APPROVAL: QA Lead)
 
 ```
 Call: pcc_create_artifact
@@ -195,9 +195,9 @@ If `pcc_init_release` returns `RELEASE_EXISTS`:
 ### Fix Introduces New Bug
 
 If testing reveals new issues:
-1. Return to PC_DEVELOPMENT
+1. Return to PC
 2. Fix the regression
-3. Re-run IC_VALIDATION
+3. Re-run IC
 4. Re-submit for QA
 
 ## Example Session (MCP-first)
@@ -212,19 +212,19 @@ Claude: Начинаю хотфикс v1.19.1 по процессу bugfix_simpl
   - File: docs/releases/v1.19.1/RELEASE_v1_19_1_auth_empty_token.md
   - Phase: RELEASE
 
-[pcc_workflow_transition] → PC_DEVELOPMENT
+[pcc_workflow_transition] → PC
 
 Реализую исправление...
 
 [Edit] src/auth/tokenValidator.ts
 
 [pcc_create_artifact IC, auto_transition: true] → success
-  - File: docs/releases/v1.19.1/IC_VALIDATION_v1_19_1.md
-  - Transitioned: PC_DEVELOPMENT → IC_VALIDATION
+  - File: docs/releases/v1.19.1/IC_v1_19_1.md
+  - Transitioned: PC → IC
 
 [pcc_create_artifact QA, auto_transition: true] → success
   - File: docs/releases/v1.19.1/QA_TESTING_v1_19_1.md
-  - Transitioned: IC_VALIDATION → QA_TESTING
+  - Transitioned: IC → QA
 
 ⏸️ QA passed. Approve для деплоя? (QA Lead)
 

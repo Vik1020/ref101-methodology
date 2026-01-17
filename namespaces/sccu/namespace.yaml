@@ -16,9 +16,11 @@ phases:
   - BC_DELTA
   - AC_DELTA
   - PLAN_FINALIZE
-  - PC_CONTEXT
+  - PC
   - IC
-  - QA_TESTING
+  - QA
+  - APPLY_DELTAS
+  - DEPLOY
 
 bundles:
   minimal:

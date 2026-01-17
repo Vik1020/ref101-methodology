@@ -19,16 +19,16 @@ description: Создаёт фичу по процессу feature_full С human
 ## Process Overview
 
 ```
-RELEASE → BC_DRAFT → AC_DRAFT → PLAN_FINALIZE → PC → IC → QA → APPLY → DEPLOY
+RELEASE → BC_DELTA → AC_DELTA → PLAN_FINALIZE → PC → IC → QA → APPLY → DEPLOY
              ↑          ↑            ↑                     ↑
            [PO]       [TL]        [Team]                [QA Lead]
 ```
 
 **Approvals:**
-- BC_DRAFT → Product Owner
-- AC_DRAFT → Tech Lead
+- BC_DELTA → Product Owner
+- AC_DELTA → Tech Lead
 - PLAN_FINALIZE → Team
-- QA_TESTING → QA Lead
+- QA → QA Lead
 
 ## ⚠️ Plan Mode Constraint
 
@@ -94,7 +94,7 @@ Args: {
 
 Follow `feature_full` process (with human approvals):
 
-#### Phase: BC_DRAFT (⏸️ APPROVAL: Product Owner)
+#### Phase: BC_DELTA (⏸️ APPROVAL: Product Owner)
 
 ```
 Call: pcc_create_artifact
@@ -111,7 +111,7 @@ Content должен включать: Goals, Actors, Features, Scenarios
 1. **ASK USER:** "BC готов. Approve для перехода к AC? (Product Owner)"
 2. Wait for user confirmation
 
-#### Phase: AC_DRAFT (⏸️ APPROVAL: Tech Lead)
+#### Phase: AC_DELTA (⏸️ APPROVAL: Tech Lead)
 
 ```
 Call: pcc_create_artifact
@@ -151,38 +151,38 @@ Args: {
 | T2 | Another task | path/to/other.ts | Low |
 ```
 
-Валидатор `plan_has_tasks` ищет строки `| T1 |`, `| T2 |` и т.д. Без этой таблицы переход в PC_DEVELOPMENT будет заблокирован.
+Валидатор `plan_has_tasks` ищет строки `| T1 |`, `| T2 |` и т.д. Без этой таблицы переход в PC будет заблокирован.
 
 Также включить: Task Breakdown (детали), Dependencies, Risks
 
 1. **ASK USER:** "Plan готов. Approve для начала разработки? (Team)"
 2. Wait for user confirmation
 
-#### Phase: PC_DEVELOPMENT
+#### Phase: PC
 
 1. Transition:
 ```
 Call: pcc_workflow_transition
-Args: { release_id: "v{X.Y.Z}", to_phase: "PC_DEVELOPMENT" }
+Args: { release_id: "v{X.Y.Z}", to_phase: "PC" }
 ```
 
 2. Implement the feature (write code via Edit)
 
-#### Phase: IC_VALIDATION
+#### Phase: IC
 
 ```
 Call: pcc_create_artifact
 Args: {
   release_id: "v{X.Y.Z}",
   artifact_type: "IC",
-  content: "<full IC_VALIDATION markdown content>",
+  content: "<full IC markdown content>",
   auto_transition: true
 }
 ```
 
 Validate: Code quality, Security, Testing
 
-#### Phase: QA_TESTING (⏸️ APPROVAL: QA Lead)
+#### Phase: QA (⏸️ APPROVAL: QA Lead)
 
 ```
 Call: pcc_create_artifact
@@ -266,14 +266,14 @@ Claude: Начинаю фичу v1.20.0 по процессу feature_full (с a
 
 [pcc_create_artifact BC_delta, auto_transition: true] → success
   - File: docs/releases/v1.20.0/BC_delta_auth.md
-  - Transitioned: RELEASE → BC_DRAFT
+  - Transitioned: RELEASE → BC_DELTA
 
 ⏸️ BC готов. Approve для перехода к AC? (Product Owner)
 
 User: Approve
 
 [pcc_create_artifact AC_delta, auto_transition: true] → success
-  - Transitioned: BC_DRAFT → AC_DRAFT
+  - Transitioned: BC_DELTA → AC_DELTA
 
 ⏸️ AC готов. Approve для перехода к PLAN? (Tech Lead)
 

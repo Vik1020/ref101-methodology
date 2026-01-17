@@ -75,7 +75,7 @@ skip_forbidden:
   - Breaking change in API/contracts
 transition:
   requires_approval: false
-  next_phase: BC_DRAFT
+  next_phase: BC_DELTA
 # ═══════════════════════════════════════════════════════════════════════════════
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -103,7 +103,7 @@ phase_history: []
 # Transition log with approvals (audit trail)
 transition_log: []
   # - from: RELEASE
-  #   to: BC_DRAFT
+  #   to: BC_DELTA
   #   timestamp: 2026-01-05T10:30:00+03:00
   #   approval_by: null              # null = no approval required
   #   approval_note: null
@@ -259,7 +259,7 @@ checklist:                            # LLM-readable checklist for session recov
 2. Fill Problem Statement and Solution
 3. Define Scope (BC_delta, AC_delta, PC contexts)
 4. Set milestone target dates
-5. Transition to BC_DRAFT
+5. Transition to BC_DELTA
 
 ### Validators
 
@@ -283,7 +283,7 @@ checklist:                            # LLM-readable checklist for session recov
 
 ### Transition
 
-**RELEASE → BC_DRAFT** (no approval required)
+**RELEASE → BC_DELTA** (no approval required)
 
 ---
 

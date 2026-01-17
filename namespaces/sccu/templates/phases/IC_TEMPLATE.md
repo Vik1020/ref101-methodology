@@ -38,7 +38,7 @@ skip_forbidden:
   - Any code change requires validation of 5 mandatory ICs
 transition:
   requires_approval: false
-  next_phase: QA_TESTING
+  next_phase: QA
 # ═══════════════════════════════════════════════════════════════════════════════
 
 applies_to:                     # Which context types this IC applies to
@@ -110,7 +110,7 @@ migration:
 1. Validate each IC declaration in PC contexts
 2. Run IC-specific validators
 3. Check P0 violations (security, a11y, performance)
-4. Transition to QA_TESTING
+4. Transition to QA
 
 ### Validators
 
@@ -135,4 +135,4 @@ migration:
 
 ### Transition
 
-**IC_VALIDATION → QA_TESTING** (no approval, automated)
+**IC → QA** (no approval, automated)

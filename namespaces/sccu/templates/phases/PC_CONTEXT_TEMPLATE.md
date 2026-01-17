@@ -57,7 +57,7 @@ skip_forbidden:
   - Any existing code modification
 transition:
   requires_approval: false
-  next_phase: IC_VALIDATION
+  next_phase: IC
 # ═══════════════════════════════════════════════════════════════════════════════
 
 based_on:
@@ -227,7 +227,7 @@ Delete the placeholder below and paste the report from Claude.
 3. Implement component
 4. Declare 5 mandatory ICs compliance
 5. Run self-testing (CSP)
-6. Transition to IC_VALIDATION
+6. Transition to IC
 
 ### Validators
 
@@ -250,4 +250,4 @@ Delete the placeholder below and paste the report from Claude.
 
 ### Transition
 
-**PC_DEVELOPMENT → PC_REVIEW → IC_VALIDATION** (no approval required)
+**PC → IC** (no approval required)

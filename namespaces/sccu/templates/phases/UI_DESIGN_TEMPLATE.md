@@ -202,7 +202,7 @@ Choose layout based on Use Case pattern:
 
 ## Transition Rules
 
-### Entry (from AC_DRAFT)
+### Entry (from AC_DELTA)
 
 ```yaml
 preconditions:

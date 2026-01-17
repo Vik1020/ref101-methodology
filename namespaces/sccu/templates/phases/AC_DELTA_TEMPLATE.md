@@ -36,7 +36,7 @@ created_at: 2026-01-04                  # REPLACE with current date
 # ═══════════════════════════════════════════════════════════════════════════════
 # PHASE RULES (SSOT) - PCC reads these directly from this template
 # ═══════════════════════════════════════════════════════════════════════════════
-phase: AC_delta
+phase: AC_DELTA
 output_file: "docs/releases/v{X.Y.Z}/AC_delta_{tool}_{feature}.md"
 output_file_mandatory: true
 validators:
@@ -388,4 +388,4 @@ interface [ModelName] {
 
 ### Transition
 
-**AC_DRAFT → AC_APPROVED** (requires Tech Lead approval)
+**AC_DELTA → PLAN_FINALIZE** (requires Tech Lead approval)

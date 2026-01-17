@@ -366,4 +366,4 @@ checklist:                               # LLM-readable checklist for session re
 
 ### Transition
 
-**QA_TESTING → APPLY_DELTAS** (requires QA Lead approval)
+**QA → APPLY_DELTAS** (requires QA Lead approval)

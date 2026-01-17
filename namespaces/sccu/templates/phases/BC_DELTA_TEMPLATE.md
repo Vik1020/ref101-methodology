@@ -39,7 +39,7 @@ created_at: 2026-01-04                  # REPLACE with current date (format: YYY
 # ═══════════════════════════════════════════════════════════════════════════════
 # PHASE RULES (SSOT) - PCC reads these directly from this template
 # ═══════════════════════════════════════════════════════════════════════════════
-phase: BC_delta
+phase: BC_DELTA
 output_file: "docs/releases/v{X.Y.Z}/BC_delta_{tool}_{feature}.md"
 output_file_mandatory: true
 validators:
@@ -66,7 +66,7 @@ skip_forbidden:
 transition:
   requires_approval: true
   approver: Product Owner
-  next_phase: AC_DRAFT
+  next_phase: AC_DELTA
 # ═══════════════════════════════════════════════════════════════════════════════
 
 changes:
@@ -232,7 +232,7 @@ checklist:                             # LLM-readable checklist for session reco
 3. Document Goals, Actors, Scenarios for each feature
 4. Complete Impact Analysis
 5. Get Product Owner approval
-6. Transition to AC_DRAFT
+6. Transition to AC_DELTA
 
 ### Validators
 
@@ -260,4 +260,4 @@ checklist:                             # LLM-readable checklist for session reco
 
 ### Transition
 
-**BC_DRAFT → BC_APPROVED** (requires Product Owner approval)
+**BC_DELTA → AC_DELTA** (requires Product Owner approval)
