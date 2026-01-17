@@ -1,0 +1,1368 @@
+# =============================================================================
+# METHODOLOGY: Node Hub
+# =============================================================================
+# Node validation and management methodology.
+# Defines bounded context nodes with provider/consumer requirements.
+#
+# This file describes the node-hub methodology using the
+# 8 elements of meta-methodology v3.1:
+#   State, Actor, Tool, Action, Entity, Artifact, Fact, Rule
+#
+# For documentation, see: namespaces/meta/README.md
+# =============================================================================
+
+methodology_id: "node-hub"
+version: "1.0.0"
+name: "Node Hub"
+meta_version: "3.1"
+description: |
+  Methodology for creating and managing bounded context nodes.
+  Nodes define structural and semantic contracts between projects.
+  Three workflows: Node Creation, Instance Creation, Process Creation.
+
+# === ENTITIES (Business objects passing through States) ===
+entities:
+  - id: "node"
+    type: "Node"
+    role: "primary"
+    schema:
+      node_id: "string (required)"
+      name: "string (required)"
+      description: "string (required)"
+      coupling: "enum [structural, semantic] (required)"
+      ssot_pattern: "string (required)"
+      canonical_repository: "string (required)"
+      canonical_role: "enum [provider, consumer] (required)"
+      depends_on: "array[string]"
+      provider_requirements: "array[object]"
+      consumer_requirements: "array[object]"
+      rules: "array[object]"
+    artifacts:
+      - "node_definition_artifact"
+      - "validator_artifact"
+      - "install_doc_artifact"
+
+  - id: "instance"
+    type: "Instance"
+    role: "secondary"
+    schema:
+      project_id: "string (required)"
+      node_id: "string (required)"
+      role: "enum [provider, consumer] (required)"
+      access_method: "enum [submodule, symlink, copy]"
+      requirements_met: "boolean"
+    artifacts:
+      - "instance_config_artifact"
+
+  - id: "business_process"
+    type: "BusinessProcess"
+    role: "secondary"
+    schema:
+      process_id: "string (required)"
+      name: "string (required)"
+      description: "string (required)"
+      goal: "string (required)"
+      capabilities: "array[string]"
+      nodes: "array[string]"
+      phases: "array[object]"
+    artifacts:
+      - "process_definition_artifact"
+
+# === STATES (Lifecycle phases) ===
+states:
+  # --- Node Creation Workflow States ---
+  - id: "RELEASE"
+    name: "Release"
+    type: "Initial"
+    allowed_actions:
+      - "init_release"
+    entry_conditions: []
+    exit_conditions:
+      - "release_initialized"
+
+  - id: "NODE_DEFINITION"
+    name: "Node Definition"
+    type: "Working"
+    allowed_actions:
+      - "define_node_basics"
+      - "handle_error"
+    entry_conditions:
+      - "release_initialized"
+    exit_conditions:
+      - "node_basics_defined"
+      - "error_from_node_definition"
+
+  - id: "PATTERN_DEFINITION"
+    name: "Pattern Definition"
+    type: "Working"
+    allowed_actions:
+      - "define_requirements"
+      - "handle_error"
+    entry_conditions:
+      - "node_basics_defined"
+    exit_conditions:
+      - "requirements_defined"
+      - "error_from_pattern_definition"
+
+  - id: "RULES_DEFINITION"
+    name: "Rules Definition"
+    type: "Working"
+    allowed_actions:
+      - "define_rules"
+      - "handle_error"
+    entry_conditions:
+      - "requirements_defined"
+    exit_conditions:
+      - "rules_defined"
+      - "error_from_rules_definition"
+
+  - id: "VALIDATOR_IMPL"
+    name: "Validator Implementation"
+    type: "Working"
+    allowed_actions:
+      - "implement_validator"
+      - "register_validator"
+      - "handle_error"
+    entry_conditions:
+      - "rules_defined"
+    exit_conditions:
+      - "validator_implemented"
+      - "error_from_validator_impl"
+
+  - id: "CONFIG_UPDATE"
+    name: "Config Update"
+    type: "Working"
+    allowed_actions:
+      - "update_nodes_yaml"
+      - "update_templates_yaml"
+      - "handle_error"
+    entry_conditions:
+      - "validator_implemented"
+    exit_conditions:
+      - "config_updated"
+      - "error_from_config_update"
+
+  - id: "INSTALL_DOC"
+    name: "Install Documentation"
+    type: "Working"
+    allowed_actions:
+      - "create_install_doc"
+      - "handle_error"
+    entry_conditions:
+      - "config_updated"
+    exit_conditions:
+      - "install_doc_created"
+      - "error_from_install_doc"
+
+  - id: "VALIDATE"
+    name: "Validate"
+    type: "Waiting"
+    allowed_actions:
+      - "run_validation"
+      - "approve_node"
+      - "handle_error"
+    entry_conditions:
+      - "install_doc_created"
+      - "instance_configured"
+      - "draft_reviewed"
+    exit_conditions:
+      - "validation_passed"
+      - "node_approved"
+      - "error_from_validate"
+    timeout: "24h"
+
+  - id: "DEPLOYED"
+    name: "Deployed"
+    type: "Terminal"
+    allowed_actions: []
+    entry_conditions:
+      - "validation_passed"
+      - "node_approved"
+      - "process_saved"
+    exit_conditions: []
+
+  # --- Instance Creation Workflow States ---
+  - id: "PROJECT_SELECT"
+    name: "Project Select"
+    type: "Working"
+    allowed_actions:
+      - "select_project"
+      - "handle_error"
+    entry_conditions:
+      - "release_initialized"
+    exit_conditions:
+      - "project_selected"
+      - "error_from_project_select"
+
+  - id: "NODE_SELECT"
+    name: "Node Select"
+    type: "Working"
+    allowed_actions:
+      - "select_node_template"
+      - "handle_error"
+    entry_conditions:
+      - "project_selected"
+    exit_conditions:
+      - "node_template_selected"
+      - "error_from_node_select"
+
+  - id: "INSTANCE_CONFIG"
+    name: "Instance Config"
+    type: "Working"
+    allowed_actions:
+      - "configure_instance"
+      - "handle_error"
+    entry_conditions:
+      - "node_template_selected"
+    exit_conditions:
+      - "instance_configured"
+      - "error_from_instance_config"
+
+  # --- Process Creation Workflow States ---
+  - id: "GOAL_DEFINITION"
+    name: "Goal Definition"
+    type: "Working"
+    allowed_actions:
+      - "define_business_goal"
+      - "handle_error"
+    entry_conditions:
+      - "release_initialized"
+    exit_conditions:
+      - "goal_defined"
+      - "error_from_goal_definition"
+
+  - id: "NODE_PLANNING"
+    name: "Node Planning"
+    type: "Working"
+    allowed_actions:
+      - "plan_nodes"
+      - "handle_error"
+    entry_conditions:
+      - "goal_defined"
+    exit_conditions:
+      - "nodes_planned"
+      - "error_from_node_planning"
+
+  - id: "DRAFT_REVIEW"
+    name: "Draft Review"
+    type: "Waiting"
+    allowed_actions:
+      - "review_draft"
+      - "approve_draft"
+      - "handle_error"
+    entry_conditions:
+      - "nodes_planned"
+    exit_conditions:
+      - "draft_reviewed"
+      - "draft_approved"
+      - "error_from_draft_review"
+    timeout: "24h"
+
+  # --- Error State ---
+  - id: "ERROR"
+    name: "Error"
+    type: "Error"
+    allowed_actions:
+      - "handle_error"
+      - "retry_phase"
+    entry_conditions:
+      - "error_from_node_definition"
+      - "error_from_pattern_definition"
+      - "error_from_rules_definition"
+      - "error_from_validator_impl"
+      - "error_from_config_update"
+      - "error_from_install_doc"
+      - "error_from_validate"
+      - "error_from_project_select"
+      - "error_from_node_select"
+      - "error_from_instance_config"
+      - "error_from_goal_definition"
+      - "error_from_node_planning"
+      - "error_from_draft_review"
+    exit_conditions:
+      - "error_resolved"
+
+# === ACTORS (Executors: Human, AI, System) ===
+actors:
+  - id: "node_designer"
+    name: "Node Designer"
+    type: "Human"
+    tools:
+      - "yaml_editor"
+      - "approval_ui"
+    permissions:
+      - "define_node_basics"
+      - "define_requirements"
+      - "define_rules"
+      - "approve_node"
+      - "approve_draft"
+
+  - id: "claude_agent"
+    name: "Claude Code Agent"
+    type: "AI"
+    tools:
+      - "file_editor"
+      - "bash"
+      - "yaml_editor"
+    permissions:
+      - "init_release"
+      - "define_node_basics"
+      - "define_requirements"
+      - "define_rules"
+      - "implement_validator"
+      - "register_validator"
+      - "update_nodes_yaml"
+      - "update_templates_yaml"
+      - "create_install_doc"
+      - "run_validation"
+      - "select_project"
+      - "select_node_template"
+      - "configure_instance"
+      - "define_business_goal"
+      - "plan_nodes"
+      - "review_draft"
+      - "handle_error"
+      - "retry_phase"
+
+  - id: "validator_system"
+    name: "Validator System"
+    type: "System"
+    tools:
+      - "bash"
+    permissions:
+      - "run_validation"
+
+# === TOOLS (Instruments for Actions) ===
+tools:
+  - id: "file_editor"
+    name: "File Editor"
+    type: "Script"
+    compatible_actors:
+      - "AI"
+    input_schema:
+      file_path: "string (required)"
+      content: "string (optional)"
+      operation: "enum [read, write, edit] (required)"
+    output_schema:
+      success: "boolean"
+      content: "string (optional)"
+      error: "string (optional)"
+    operations:
+      - "read"
+      - "write"
+      - "edit"
+
+  - id: "yaml_editor"
+    name: "YAML Editor"
+    type: "Script"
+    compatible_actors:
+      - "Human"
+      - "AI"
+    input_schema:
+      file_path: "string (required)"
+      yaml_path: "string (optional)"
+      value: "any (optional)"
+    output_schema:
+      success: "boolean"
+      error: "string (optional)"
+    operations:
+      - "read"
+      - "write"
+      - "update"
+      - "append"
+
+  - id: "bash"
+    name: "Bash Shell"
+    type: "Script"
+    compatible_actors:
+      - "AI"
+      - "System"
+    input_schema:
+      command: "string (required)"
+      cwd: "string (optional)"
+      timeout: "number (optional)"
+    output_schema:
+      stdout: "string"
+      stderr: "string"
+      exit_code: "number"
+    operations:
+      - "execute_command"
+      - "run_validation"
+      - "git_operations"
+
+  - id: "approval_ui"
+    name: "Approval Interface"
+    type: "UI"
+    compatible_actors:
+      - "Human"
+    input_schema:
+      artifact_id: "string (required)"
+      action: "enum [approve, reject, request_changes]"
+      comment: "string (optional)"
+    output_schema:
+      approved: "boolean"
+      comment: "string (optional)"
+      timestamp: "datetime"
+    operations:
+      - "approve"
+      - "reject"
+      - "request_changes"
+
+# === ACTIONS (Units of work) ===
+actions:
+  # --- Release Actions ---
+  - id: "init_release"
+    name: "Initialize Release"
+    actor: "claude_agent"
+    tool: "bash"
+    input: "node"
+    allowed_in_states:
+      - "RELEASE"
+    output:
+      fact: "release_initialized"
+    retry:
+      max_attempts: 3
+      delay: "fixed"
+      on_exhausted: "error_from_release"
+
+  # --- Node Creation Actions ---
+  - id: "define_node_basics"
+    name: "Define Node Basics"
+    actor: "claude_agent"
+    tool: "file_editor"
+    input: "node"
+    allowed_in_states:
+      - "NODE_DEFINITION"
+    output:
+      artifact: "node_definition_artifact"
+      fact: "node_basics_defined"
+
+  - id: "define_requirements"
+    name: "Define Requirements"
+    actor: "claude_agent"
+    tool: "yaml_editor"
+    input: "node"
+    allowed_in_states:
+      - "PATTERN_DEFINITION"
+    output:
+      fact: "requirements_defined"
+
+  - id: "define_rules"
+    name: "Define Rules"
+    actor: "claude_agent"
+    tool: "yaml_editor"
+    input: "node"
+    allowed_in_states:
+      - "RULES_DEFINITION"
+    output:
+      fact: "rules_defined"
+
+  - id: "implement_validator"
+    name: "Implement Validator"
+    actor: "claude_agent"
+    tool: "file_editor"
+    input: "node"
+    allowed_in_states:
+      - "VALIDATOR_IMPL"
+    output:
+      artifact: "validator_artifact"
+
+  - id: "register_validator"
+    name: "Register Validator"
+    actor: "claude_agent"
+    tool: "file_editor"
+    input: "node"
+    allowed_in_states:
+      - "VALIDATOR_IMPL"
+    output:
+      fact: "validator_implemented"
+
+  - id: "update_nodes_yaml"
+    name: "Update nodes.yaml"
+    actor: "claude_agent"
+    tool: "yaml_editor"
+    input: "node"
+    allowed_in_states:
+      - "CONFIG_UPDATE"
+    output:
+      fact: "nodes_yaml_updated"
+
+  - id: "update_templates_yaml"
+    name: "Update node-templates.yaml"
+    actor: "claude_agent"
+    tool: "yaml_editor"
+    input: "node"
+    allowed_in_states:
+      - "CONFIG_UPDATE"
+    output:
+      fact: "config_updated"
+
+  - id: "create_install_doc"
+    name: "Create Install Documentation"
+    actor: "claude_agent"
+    tool: "file_editor"
+    input: "node"
+    allowed_in_states:
+      - "INSTALL_DOC"
+    output:
+      artifact: "install_doc_artifact"
+      fact: "install_doc_created"
+
+  - id: "run_validation"
+    name: "Run Validation"
+    actor: "validator_system"
+    tool: "bash"
+    input: "node"
+    allowed_in_states:
+      - "VALIDATE"
+    output:
+      fact: "validation_passed"
+    retry:
+      max_attempts: 3
+      delay: "exponential"
+      on_exhausted: "error_from_validate"
+
+  - id: "approve_node"
+    name: "Approve Node"
+    actor: "node_designer"
+    tool: "approval_ui"
+    input: "node"
+    allowed_in_states:
+      - "VALIDATE"
+    output:
+      fact: "node_approved"
+
+  # --- Instance Creation Actions ---
+  - id: "select_project"
+    name: "Select Project"
+    actor: "claude_agent"
+    tool: "yaml_editor"
+    input: "instance"
+    allowed_in_states:
+      - "PROJECT_SELECT"
+    output:
+      fact: "project_selected"
+
+  - id: "select_node_template"
+    name: "Select Node Template"
+    actor: "claude_agent"
+    tool: "yaml_editor"
+    input: "instance"
+    allowed_in_states:
+      - "NODE_SELECT"
+    output:
+      fact: "node_template_selected"
+
+  - id: "configure_instance"
+    name: "Configure Instance"
+    actor: "claude_agent"
+    tool: "yaml_editor"
+    input: "instance"
+    allowed_in_states:
+      - "INSTANCE_CONFIG"
+    output:
+      artifact: "instance_config_artifact"
+      fact: "instance_configured"
+
+  # --- Process Creation Actions ---
+  - id: "define_business_goal"
+    name: "Define Business Goal"
+    actor: "claude_agent"
+    tool: "file_editor"
+    input: "business_process"
+    allowed_in_states:
+      - "GOAL_DEFINITION"
+    output:
+      fact: "goal_defined"
+
+  - id: "plan_nodes"
+    name: "Plan Nodes"
+    actor: "claude_agent"
+    tool: "yaml_editor"
+    input: "business_process"
+    allowed_in_states:
+      - "NODE_PLANNING"
+    output:
+      fact: "nodes_planned"
+
+  - id: "review_draft"
+    name: "Review Draft"
+    actor: "claude_agent"
+    tool: "file_editor"
+    input: "business_process"
+    allowed_in_states:
+      - "DRAFT_REVIEW"
+    output:
+      fact: "draft_reviewed"
+
+  - id: "approve_draft"
+    name: "Approve Draft"
+    actor: "node_designer"
+    tool: "approval_ui"
+    input: "business_process"
+    allowed_in_states:
+      - "DRAFT_REVIEW"
+    output:
+      fact: "draft_approved"
+
+  # --- Error Handling Actions ---
+  - id: "handle_error"
+    name: "Handle Error"
+    actor: "claude_agent"
+    tool: "bash"
+    input: "node"
+    allowed_in_states:
+      - "ERROR"
+      - "NODE_DEFINITION"
+      - "PATTERN_DEFINITION"
+      - "RULES_DEFINITION"
+      - "VALIDATOR_IMPL"
+      - "CONFIG_UPDATE"
+      - "INSTALL_DOC"
+      - "VALIDATE"
+      - "PROJECT_SELECT"
+      - "NODE_SELECT"
+      - "INSTANCE_CONFIG"
+      - "GOAL_DEFINITION"
+      - "NODE_PLANNING"
+      - "DRAFT_REVIEW"
+    output:
+      fact: "error_handled"
+    retry:
+      max_attempts: 3
+      delay: "exponential"
+      on_exhausted: "escalate"
+
+  - id: "retry_phase"
+    name: "Retry Phase"
+    actor: "claude_agent"
+    tool: "bash"
+    input: "node"
+    allowed_in_states:
+      - "ERROR"
+    output:
+      fact: "error_resolved"
+
+# === ARTIFACTS (Files/documents created) ===
+artifacts:
+  - id: "node_definition_artifact"
+    name: "NODE_DEFINITION_{node_id}.md"
+    type: "markdown"
+    template: "templates/nodes/NODE_TEMPLATE.md"
+    created_by: "define_node_basics"
+    entity_id: "node"
+    version: "1.0.0"
+
+  - id: "validator_artifact"
+    name: "{node_id}.validator.ts"
+    type: "typescript"
+    template: null
+    created_by: "implement_validator"
+    entity_id: "node"
+    version: "1.0.0"
+
+  - id: "install_doc_artifact"
+    name: "INSTALL_{node_id}.md"
+    type: "markdown"
+    template: "docs/installation/INSTALL_TEMPLATE.md"
+    created_by: "create_install_doc"
+    entity_id: "node"
+    version: "1.0.0"
+
+  - id: "instance_config_artifact"
+    name: "node-instances.yaml"
+    type: "yaml"
+    template: null
+    created_by: "configure_instance"
+    entity_id: "instance"
+    version: "1.0.0"
+
+  - id: "process_definition_artifact"
+    name: "{process_id}.json"
+    type: "json"
+    template: "templates/processes/BUSINESS_PROCESS_TEMPLATE.md"
+    created_by: "define_business_goal"
+    entity_id: "business_process"
+    version: "1.0.0"
+
+# === FACTS (Events triggering transitions) ===
+facts:
+  # --- Release Facts ---
+  - id: "release_initialized"
+    name: "Release Initialized"
+    from_state: "RELEASE"
+    to_state: "NODE_DEFINITION"
+    triggered_by: "init_release"
+    timestamp: null
+    actor: null
+    entity_id: null
+    payload: {}
+
+  # --- Node Creation Facts ---
+  - id: "node_basics_defined"
+    name: "Node Basics Defined"
+    from_state: "NODE_DEFINITION"
+    to_state: "PATTERN_DEFINITION"
+    triggered_by: "define_node_basics"
+    timestamp: null
+    actor: null
+    entity_id: null
+    payload: {}
+
+  - id: "requirements_defined"
+    name: "Requirements Defined"
+    from_state: "PATTERN_DEFINITION"
+    to_state: "RULES_DEFINITION"
+    triggered_by: "define_requirements"
+    timestamp: null
+    actor: null
+    entity_id: null
+    payload: {}
+
+  - id: "rules_defined"
+    name: "Rules Defined"
+    from_state: "RULES_DEFINITION"
+    to_state: "VALIDATOR_IMPL"
+    triggered_by: "define_rules"
+    timestamp: null
+    actor: null
+    entity_id: null
+    payload: {}
+
+  - id: "validator_implemented"
+    name: "Validator Implemented"
+    from_state: "VALIDATOR_IMPL"
+    to_state: "CONFIG_UPDATE"
+    triggered_by: "register_validator"
+    timestamp: null
+    actor: null
+    entity_id: null
+    payload: {}
+
+  - id: "config_updated"
+    name: "Config Updated"
+    from_state: "CONFIG_UPDATE"
+    to_state: "INSTALL_DOC"
+    triggered_by: "update_templates_yaml"
+    timestamp: null
+    actor: null
+    entity_id: null
+    payload: {}
+
+  - id: "install_doc_created"
+    name: "Install Doc Created"
+    from_state: "INSTALL_DOC"
+    to_state: "VALIDATE"
+    triggered_by: "create_install_doc"
+    timestamp: null
+    actor: null
+    entity_id: null
+    payload: {}
+
+  - id: "validation_passed"
+    name: "Validation Passed"
+    from_state: "VALIDATE"
+    to_state: "DEPLOYED"
+    triggered_by: "run_validation"
+    timestamp: null
+    actor: null
+    entity_id: null
+    payload: {}
+
+  - id: "node_approved"
+    name: "Node Approved"
+    from_state: "VALIDATE"
+    to_state: "DEPLOYED"
+    triggered_by: "approve_node"
+    requires:
+      - "validation_passed"
+    timestamp: null
+    actor: null
+    entity_id: null
+    payload: {}
+
+  # --- Instance Creation Facts ---
+  - id: "release_to_project_select"
+    name: "Release to Project Select"
+    from_state: "RELEASE"
+    to_state: "PROJECT_SELECT"
+    triggered_by: "init_release"
+    timestamp: null
+    actor: null
+    entity_id: null
+    payload: {}
+
+  - id: "project_selected"
+    name: "Project Selected"
+    from_state: "PROJECT_SELECT"
+    to_state: "NODE_SELECT"
+    triggered_by: "select_project"
+    timestamp: null
+    actor: null
+    entity_id: null
+    payload: {}
+
+  - id: "node_template_selected"
+    name: "Node Template Selected"
+    from_state: "NODE_SELECT"
+    to_state: "INSTANCE_CONFIG"
+    triggered_by: "select_node_template"
+    timestamp: null
+    actor: null
+    entity_id: null
+    payload: {}
+
+  - id: "instance_configured"
+    name: "Instance Configured"
+    from_state: "INSTANCE_CONFIG"
+    to_state: "VALIDATE"
+    triggered_by: "configure_instance"
+    timestamp: null
+    actor: null
+    entity_id: null
+    payload: {}
+
+  # --- Process Creation Facts ---
+  - id: "release_to_goal_definition"
+    name: "Release to Goal Definition"
+    from_state: "RELEASE"
+    to_state: "GOAL_DEFINITION"
+    triggered_by: "init_release"
+    timestamp: null
+    actor: null
+    entity_id: null
+    payload: {}
+
+  - id: "goal_defined"
+    name: "Goal Defined"
+    from_state: "GOAL_DEFINITION"
+    to_state: "NODE_PLANNING"
+    triggered_by: "define_business_goal"
+    timestamp: null
+    actor: null
+    entity_id: null
+    payload: {}
+
+  - id: "nodes_planned"
+    name: "Nodes Planned"
+    from_state: "NODE_PLANNING"
+    to_state: "DRAFT_REVIEW"
+    triggered_by: "plan_nodes"
+    timestamp: null
+    actor: null
+    entity_id: null
+    payload: {}
+
+  - id: "draft_reviewed"
+    name: "Draft Reviewed"
+    from_state: "DRAFT_REVIEW"
+    to_state: "VALIDATE"
+    triggered_by: "review_draft"
+    timestamp: null
+    actor: null
+    entity_id: null
+    payload: {}
+
+  - id: "draft_approved"
+    name: "Draft Approved"
+    from_state: "DRAFT_REVIEW"
+    to_state: "VALIDATE"
+    triggered_by: "approve_draft"
+    requires:
+      - "draft_reviewed"
+    timestamp: null
+    actor: null
+    entity_id: null
+    payload: {}
+
+  - id: "process_saved"
+    name: "Process Saved"
+    from_state: "VALIDATE"
+    to_state: "DEPLOYED"
+    triggered_by: "run_validation"
+    timestamp: null
+    actor: null
+    entity_id: null
+    payload: {}
+
+  # --- Error Facts ---
+  - id: "error_from_node_definition"
+    name: "Error from Node Definition"
+    from_state: "NODE_DEFINITION"
+    to_state: "ERROR"
+    triggered_by: "handle_error"
+    timestamp: null
+    actor: null
+    entity_id: null
+    payload: {}
+
+  - id: "error_from_pattern_definition"
+    name: "Error from Pattern Definition"
+    from_state: "PATTERN_DEFINITION"
+    to_state: "ERROR"
+    triggered_by: "handle_error"
+    timestamp: null
+    actor: null
+    entity_id: null
+    payload: {}
+
+  - id: "error_from_rules_definition"
+    name: "Error from Rules Definition"
+    from_state: "RULES_DEFINITION"
+    to_state: "ERROR"
+    triggered_by: "handle_error"
+    timestamp: null
+    actor: null
+    entity_id: null
+    payload: {}
+
+  - id: "error_from_validator_impl"
+    name: "Error from Validator Impl"
+    from_state: "VALIDATOR_IMPL"
+    to_state: "ERROR"
+    triggered_by: "handle_error"
+    timestamp: null
+    actor: null
+    entity_id: null
+    payload: {}
+
+  - id: "error_from_config_update"
+    name: "Error from Config Update"
+    from_state: "CONFIG_UPDATE"
+    to_state: "ERROR"
+    triggered_by: "handle_error"
+    timestamp: null
+    actor: null
+    entity_id: null
+    payload: {}
+
+  - id: "error_from_install_doc"
+    name: "Error from Install Doc"
+    from_state: "INSTALL_DOC"
+    to_state: "ERROR"
+    triggered_by: "handle_error"
+    timestamp: null
+    actor: null
+    entity_id: null
+    payload: {}
+
+  - id: "error_from_validate"
+    name: "Error from Validate"
+    from_state: "VALIDATE"
+    to_state: "ERROR"
+    triggered_by: "handle_error"
+    timestamp: null
+    actor: null
+    entity_id: null
+    payload: {}
+
+  - id: "error_from_project_select"
+    name: "Error from Project Select"
+    from_state: "PROJECT_SELECT"
+    to_state: "ERROR"
+    triggered_by: "handle_error"
+    timestamp: null
+    actor: null
+    entity_id: null
+    payload: {}
+
+  - id: "error_from_node_select"
+    name: "Error from Node Select"
+    from_state: "NODE_SELECT"
+    to_state: "ERROR"
+    triggered_by: "handle_error"
+    timestamp: null
+    actor: null
+    entity_id: null
+    payload: {}
+
+  - id: "error_from_instance_config"
+    name: "Error from Instance Config"
+    from_state: "INSTANCE_CONFIG"
+    to_state: "ERROR"
+    triggered_by: "handle_error"
+    timestamp: null
+    actor: null
+    entity_id: null
+    payload: {}
+
+  - id: "error_from_goal_definition"
+    name: "Error from Goal Definition"
+    from_state: "GOAL_DEFINITION"
+    to_state: "ERROR"
+    triggered_by: "handle_error"
+    timestamp: null
+    actor: null
+    entity_id: null
+    payload: {}
+
+  - id: "error_from_node_planning"
+    name: "Error from Node Planning"
+    from_state: "NODE_PLANNING"
+    to_state: "ERROR"
+    triggered_by: "handle_error"
+    timestamp: null
+    actor: null
+    entity_id: null
+    payload: {}
+
+  - id: "error_from_draft_review"
+    name: "Error from Draft Review"
+    from_state: "DRAFT_REVIEW"
+    to_state: "ERROR"
+    triggered_by: "handle_error"
+    timestamp: null
+    actor: null
+    entity_id: null
+    payload: {}
+
+  - id: "error_resolved"
+    name: "Error Resolved"
+    from_state: "ERROR"
+    to_state: "NODE_DEFINITION"
+    triggered_by: "retry_phase"
+    timestamp: null
+    actor: null
+    entity_id: null
+    payload: {}
+
+# === RULES (Constraints and conditions) ===
+rules:
+  # --- Node Creation Rules ---
+  - id: "node_has_id"
+    name: "Node Has ID"
+    type: "Precondition"
+    condition: "node.node_id != null AND node.node_id != ''"
+    scope: "state(NODE_DEFINITION)"
+    on_violation: "Block"
+
+  - id: "node_has_name"
+    name: "Node Has Name"
+    type: "Precondition"
+    condition: "node.name != null AND node.name != ''"
+    scope: "state(NODE_DEFINITION)"
+    on_violation: "Block"
+
+  - id: "node_has_coupling"
+    name: "Node Has Coupling"
+    type: "Precondition"
+    condition: "node.coupling in ['structural', 'semantic']"
+    scope: "state(NODE_DEFINITION)"
+    on_violation: "Block"
+
+  - id: "has_provider_requirements"
+    name: "Has Provider Requirements"
+    type: "Precondition"
+    condition: "length(node.provider_requirements) >= 1"
+    scope: "state(PATTERN_DEFINITION)"
+    on_violation: "Block"
+
+  - id: "rules_have_severity"
+    name: "Rules Have Severity"
+    type: "Postcondition"
+    condition: "all(node.rules, r => r.severity in ['error', 'warning'])"
+    scope: "state(RULES_DEFINITION)"
+    on_violation: "Block"
+
+  - id: "rules_have_type"
+    name: "Rules Have Type"
+    type: "Postcondition"
+    condition: "all(node.rules, r => r.type in ['script', 'semantic'])"
+    scope: "state(RULES_DEFINITION)"
+    on_violation: "Block"
+
+  - id: "validator_file_exists"
+    name: "Validator File Exists"
+    type: "Postcondition"
+    condition: "file_exists('packages/core/src/nodes/{node_id}.validator.ts')"
+    scope: "state(VALIDATOR_IMPL)"
+    on_violation: "Block"
+
+  - id: "validator_registered"
+    name: "Validator Registered"
+    type: "Postcondition"
+    condition: "grep('{node_id}', 'packages/core/src/nodes/index.ts')"
+    scope: "state(VALIDATOR_IMPL)"
+    on_violation: "Block"
+
+  - id: "node_in_nodes_yaml"
+    name: "Node in nodes.yaml"
+    type: "Postcondition"
+    condition: "yaml_contains('config/nodes.yaml', node.node_id)"
+    scope: "state(CONFIG_UPDATE)"
+    on_violation: "Block"
+
+  - id: "node_in_templates_yaml"
+    name: "Node in node-templates.yaml"
+    type: "Postcondition"
+    condition: "yaml_contains('config/node-templates.yaml', node.node_id)"
+    scope: "state(CONFIG_UPDATE)"
+    on_violation: "Block"
+
+  - id: "install_doc_exists"
+    name: "Install Doc Exists"
+    type: "Postcondition"
+    condition: "file_exists('docs/installation/INSTALL_{node_id}.md')"
+    scope: "state(INSTALL_DOC)"
+    on_violation: "Block"
+
+  - id: "make_validate_passes"
+    name: "Make Validate Passes"
+    type: "Postcondition"
+    condition: "exit_code('make validate') == 0"
+    scope: "state(VALIDATE)"
+    on_violation: "Block"
+
+  # --- Instance Creation Rules ---
+  - id: "ic_project_exists"
+    name: "Project Exists"
+    type: "Precondition"
+    condition: "yaml_contains('config/node-instances.yaml', instance.project_id)"
+    scope: "state(PROJECT_SELECT)"
+    on_violation: "Block"
+
+  - id: "ic_template_exists"
+    name: "Template Exists"
+    type: "Precondition"
+    condition: "yaml_contains('config/node-templates.yaml', instance.node_id)"
+    scope: "state(NODE_SELECT)"
+    on_violation: "Block"
+
+  - id: "ic_role_valid"
+    name: "Role Valid"
+    type: "Precondition"
+    condition: "instance.role in ['provider', 'consumer']"
+    scope: "state(INSTANCE_CONFIG)"
+    on_violation: "Block"
+
+  - id: "ic_requirements_met"
+    name: "Requirements Met"
+    type: "Postcondition"
+    condition: "validate_instance_requirements(instance)"
+    scope: "state(INSTANCE_CONFIG)"
+    on_violation: "Block"
+
+  - id: "ic_instance_valid"
+    name: "Instance Valid"
+    type: "Postcondition"
+    condition: "instance.requirements_met == true"
+    scope: "state(VALIDATE)"
+    on_violation: "Block"
+
+  # --- Process Creation Rules ---
+  - id: "bp_has_goal"
+    name: "Business Process Has Goal"
+    type: "Precondition"
+    condition: "business_process.goal != null AND business_process.goal != ''"
+    scope: "state(GOAL_DEFINITION)"
+    on_violation: "Block"
+
+  - id: "bp_has_capabilities"
+    name: "Business Process Has Capabilities"
+    type: "Postcondition"
+    condition: "length(business_process.capabilities) >= 1"
+    scope: "state(GOAL_DEFINITION)"
+    on_violation: "Block"
+
+  - id: "np_all_nodes_decided"
+    name: "All Nodes Decided"
+    type: "Postcondition"
+    condition: "all(business_process.capabilities, c => node_decision_exists(c))"
+    scope: "state(NODE_PLANNING)"
+    on_violation: "Block"
+
+  - id: "dr_has_outputs"
+    name: "Draft Has Outputs"
+    type: "Precondition"
+    condition: "length(business_process.phases) >= 1"
+    scope: "state(DRAFT_REVIEW)"
+    on_violation: "Block"
+
+  - id: "dr_nodes_valid"
+    name: "Draft Nodes Valid"
+    type: "Postcondition"
+    condition: "all(business_process.nodes, n => node_exists(n))"
+    scope: "state(DRAFT_REVIEW)"
+    on_violation: "Block"
+
+  - id: "bp_valid_json"
+    name: "Business Process Valid JSON"
+    type: "Postcondition"
+    condition: "json_valid('processes/{process_id}.json')"
+    scope: "state(VALIDATE)"
+    on_violation: "Block"
+
+  # --- Approval Rules ---
+  - id: "node_requires_approval"
+    name: "Node Requires Approval"
+    type: "Guard"
+    condition: "fact_exists('validation_passed')"
+    scope: "transition(VALIDATE -> DEPLOYED)"
+    on_violation: "Block"
+
+  - id: "draft_requires_approval"
+    name: "Draft Requires Approval"
+    type: "Guard"
+    condition: "fact_exists('draft_reviewed')"
+    scope: "transition(DRAFT_REVIEW -> VALIDATE)"
+    on_violation: "Block"
+
+  # --- Error Recovery Rules ---
+  - id: "max_error_retries"
+    name: "Maximum Error Retries"
+    type: "Constraint"
+    condition: "entity.retry_count <= 5"
+    scope: "transition(ERROR -> NODE_DEFINITION)"
+    on_violation: "Redirect"
+    redirect_to: "DEPLOYED"
+
+# === PHASE DEFAULTS (SSOT for process generation) ===
+phase_defaults:
+  RELEASE:
+    validators: []
+    skip_allowed: false
+
+  NODE_DEFINITION:
+    template: "templates/nodes/NODE_TEMPLATE.md"
+    validators:
+      - "node_has_id"
+      - "node_has_name"
+      - "node_has_coupling"
+    skip_allowed: false
+
+  PATTERN_DEFINITION:
+    validators:
+      - "has_provider_requirements"
+    skip_allowed: false
+
+  RULES_DEFINITION:
+    validators:
+      - "rules_have_severity"
+      - "rules_have_type"
+    skip_allowed: false
+
+  VALIDATOR_IMPL:
+    validators:
+      - "validator_file_exists"
+      - "validator_registered"
+    skip_allowed: false
+
+  CONFIG_UPDATE:
+    validators:
+      - "node_in_nodes_yaml"
+      - "node_in_templates_yaml"
+    skip_allowed: false
+
+  INSTALL_DOC:
+    template: "docs/installation/INSTALL_TEMPLATE.md"
+    validators:
+      - "install_doc_exists"
+    skip_allowed: false
+
+  VALIDATE:
+    validators:
+      - "make_validate_passes"
+    approval_role: "node_designer"
+    skip_allowed: false
+
+  DEPLOYED:
+    skip_allowed: false
+
+  PROJECT_SELECT:
+    validators:
+      - "ic_project_exists"
+    skip_allowed: false
+
+  NODE_SELECT:
+    validators:
+      - "ic_template_exists"
+    skip_allowed: false
+
+  INSTANCE_CONFIG:
+    validators:
+      - "ic_role_valid"
+      - "ic_requirements_met"
+    skip_allowed: false
+
+  GOAL_DEFINITION:
+    template: "templates/processes/BUSINESS_PROCESS_TEMPLATE.md"
+    validators:
+      - "bp_has_goal"
+      - "bp_has_capabilities"
+    skip_allowed: false
+
+  NODE_PLANNING:
+    validators:
+      - "np_all_nodes_decided"
+    skip_allowed: false
+
+  DRAFT_REVIEW:
+    validators:
+      - "dr_has_outputs"
+      - "dr_nodes_valid"
+    approval_role: "node_designer"
+    skip_allowed: false
+
+# === PROCESSES (Predefined State compositions) ===
+processes:
+  - id: "node_creation"
+    version: "1.0.0"
+    name: "Node Creation"
+    type: "tooling"
+    description: |
+      Creates a new bounded context node with template, validator, and install documentation.
+      Full 8-phase workflow with 1 approval point at VALIDATE.
+    states_sequence:
+      - "RELEASE"
+      - "NODE_DEFINITION"
+      - "PATTERN_DEFINITION"
+      - "RULES_DEFINITION"
+      - "VALIDATOR_IMPL"
+      - "CONFIG_UPDATE"
+      - "INSTALL_DOC"
+      - "VALIDATE"
+      - "DEPLOYED"
+    approval_points:
+      VALIDATE:
+        role: "node_designer"
+    nodes:
+      "node-hub:node-creation-templates": "^1.0.0"
+
+  - id: "instance_creation"
+    version: "1.0.0"
+    name: "Instance Creation"
+    type: "tooling"
+    description: |
+      Connects existing node templates to projects by creating instances in node-instances.yaml.
+      5-phase workflow with 1 approval point at VALIDATE.
+    states_sequence:
+      - "RELEASE"
+      - "PROJECT_SELECT"
+      - "NODE_SELECT"
+      - "INSTANCE_CONFIG"
+      - "VALIDATE"
+      - "DEPLOYED"
+    approval_points:
+      VALIDATE:
+        role: "node_designer"
+    nodes: {}
+
+  - id: "process_creation"
+    version: "1.0.0"
+    name: "Process Creation"
+    type: "tooling"
+    description: |
+      Creates a new business process with node planning.
+      Defines which nodes to reuse from existing or create new.
+      5-phase workflow with 1 approval point at DRAFT_REVIEW.
+    states_sequence:
+      - "RELEASE"
+      - "GOAL_DEFINITION"
+      - "NODE_PLANNING"
+      - "DRAFT_REVIEW"
+      - "VALIDATE"
+      - "DEPLOYED"
+    approval_points:
+      DRAFT_REVIEW:
+        role: "node_designer"
+    nodes: {}
