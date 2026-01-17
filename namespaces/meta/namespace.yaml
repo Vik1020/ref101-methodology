@@ -29,3 +29,4 @@ skills:
 # References to processes/*.json
 processes:
   - methodology_creation
+  - methodology_validation

@@ -1,0 +1,73 @@
+{
+  "process_id": "methodology_validation",
+  "version": "1.0.0",
+  "name": "Methodology Validation",
+  "type": "validation",
+  "description": "Quick L1/L2/L3 validation of methodology.yaml. No human approval required.",
+  "phases": [
+    {
+      "id": "INIT",
+      "type": "Initial",
+      "description": "Locate target methodology",
+      "validators": ["target_namespace_exists", "methodology_yaml_exists"],
+      "outputs": ["target_path"]
+    },
+    {
+      "id": "L1_SCHEMA",
+      "type": "Working",
+      "description": "Validate YAML structure against schema",
+      "validators": [
+        "yaml_syntax_valid",
+        "required_sections_present",
+        "types_correct"
+      ],
+      "outputs": ["l1_report"],
+      "on_failure": "FAILED"
+    },
+    {
+      "id": "L2_LINKS",
+      "type": "Working",
+      "description": "Validate all cross-references between elements",
+      "validators": [
+        "state_refs_valid",
+        "actor_refs_valid",
+        "tool_refs_valid",
+        "fact_refs_valid",
+        "no_orphan_elements"
+      ],
+      "outputs": ["l2_report"],
+      "on_failure": "FAILED"
+    },
+    {
+      "id": "L3_ANALYSIS",
+      "type": "Working",
+      "description": "Static analysis for correctness",
+      "validators": [
+        "single_initial_state",
+        "has_terminal_state",
+        "has_error_state",
+        "all_states_reachable",
+        "no_deadlock_states",
+        "actors_have_tools",
+        "tool_actor_compatible"
+      ],
+      "outputs": ["l3_report"],
+      "on_failure": "FAILED"
+    },
+    {
+      "id": "VALID",
+      "type": "Terminal",
+      "description": "Methodology passed all validation levels",
+      "outputs": ["validation_report.md"]
+    },
+    {
+      "id": "FAILED",
+      "type": "Error",
+      "description": "Validation failed",
+      "outputs": ["error_details"]
+    }
+  ],
+  "nodes": {
+    "meta:schema-validator": "^1.0.0"
+  }
+}

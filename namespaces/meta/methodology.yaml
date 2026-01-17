@@ -418,3 +418,5 @@ phase_defaults:
 processes:
   - id: "methodology_creation"
     definition_file: "processes/methodology_creation.json"
+  - id: "methodology_validation"
+    definition_file: "processes/methodology_validation.json"
