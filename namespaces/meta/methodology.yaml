@@ -420,3 +420,7 @@ processes:
     definition_file: "processes/methodology_creation.json"
   - id: "methodology_validation"
     definition_file: "processes/methodology_validation.json"
+  - id: "methodology_migration"
+    definition_file: "processes/methodology_migration.json"
+  - id: "methodology_evolution"
+    definition_file: "processes/methodology_evolution.json"

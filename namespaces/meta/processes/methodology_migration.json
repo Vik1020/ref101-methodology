@@ -1,0 +1,70 @@
+{
+  "process_id": "methodology_migration",
+  "version": "1.0.0",
+  "name": "Methodology Migration",
+  "type": "wizard",
+  "description": "Migrate existing processes (Confluence, BPMN, text instructions) to methodology.yaml format.",
+  "phases": [
+    {
+      "id": "INIT",
+      "type": "Initial",
+      "description": "Define migration source and target namespace",
+      "validators": ["source_defined", "target_namespace_valid"],
+      "outputs": ["migration_config"]
+    },
+    {
+      "id": "ARCHAEOLOGY",
+      "type": "Working",
+      "description": "Collect artifacts: documents, instructions, checklists. Conduct interviews. Document gaps between docs and reality.",
+      "validators": ["artifacts_collected", "interviews_done"],
+      "outputs": ["artifacts_inventory", "gap_analysis"],
+      "approval": {
+        "required": true,
+        "role": "process_owner"
+      }
+    },
+    {
+      "id": "MAPPING",
+      "type": "Working",
+      "description": "Identify hidden States, Actors, Facts from collected artifacts",
+      "validators": ["states_identified", "actors_identified", "facts_identified"],
+      "outputs": ["element_mapping"],
+      "approval": {
+        "required": true,
+        "role": "process_owner"
+      }
+    },
+    {
+      "id": "FORMALIZATION",
+      "type": "Working",
+      "description": "Generate methodology.yaml from mapping. Fill gaps (missing Rules, Error States).",
+      "validators": ["methodology_generated", "gaps_filled"],
+      "outputs": ["methodology.yaml", "README.md", "GLOSSARY.md"],
+      "on_failure": "FAILED"
+    },
+    {
+      "id": "VALIDATION",
+      "type": "Working",
+      "description": "Run L1/L2/L3 validation. Walkthrough happy path scenario.",
+      "validators": ["L1_passed", "L2_passed", "L3_passed", "happy_path_verified"],
+      "outputs": ["validation_report"],
+      "on_failure": "FAILED"
+    },
+    {
+      "id": "COMPLETE",
+      "type": "Terminal",
+      "description": "Migration complete. New namespace ready to use.",
+      "outputs": ["namespace/"]
+    },
+    {
+      "id": "FAILED",
+      "type": "Error",
+      "description": "Migration failed",
+      "outputs": ["error_details"]
+    }
+  ],
+  "nodes": {
+    "meta:schema-validator": "^1.0.0",
+    "meta:methodology-templates": "^1.0.0"
+  }
+}

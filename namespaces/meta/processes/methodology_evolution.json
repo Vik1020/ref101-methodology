@@ -1,0 +1,77 @@
+{
+  "process_id": "methodology_evolution",
+  "version": "1.0.0",
+  "name": "Methodology Evolution",
+  "type": "evolution",
+  "description": "Controlled evolution and versioning of existing methodologies. Supports patch/minor/major changes.",
+  "phases": [
+    {
+      "id": "INIT",
+      "type": "Initial",
+      "description": "Select methodology to evolve",
+      "validators": ["namespace_exists", "methodology_valid"],
+      "outputs": ["current_version", "methodology_snapshot"]
+    },
+    {
+      "id": "ANALYZE",
+      "type": "Working",
+      "description": "Analyze required changes. Compare with current state.",
+      "validators": ["changes_defined"],
+      "outputs": ["change_list", "impact_analysis"]
+    },
+    {
+      "id": "CLASSIFY",
+      "type": "Working",
+      "description": "Classify change type: patch (rule threshold), minor (new state/actor), major (breaking schema)",
+      "validators": ["change_type_determined"],
+      "outputs": ["change_type", "new_version"],
+      "approval": {
+        "required": true,
+        "role": "methodology_owner"
+      },
+      "classification_rules": {
+        "patch": ["rule_condition_change", "new_tool", "description_update"],
+        "minor": ["new_state", "new_actor", "new_optional_field"],
+        "major": ["delete_state", "rename_fact", "new_required_field", "schema_breaking"]
+      }
+    },
+    {
+      "id": "IMPLEMENT",
+      "type": "Working",
+      "description": "Apply changes to methodology.yaml",
+      "validators": ["changes_applied"],
+      "outputs": ["methodology.yaml (updated)"],
+      "on_failure": "FAILED"
+    },
+    {
+      "id": "VALIDATE",
+      "type": "Working",
+      "description": "Run L1/L2/L3 validation on updated methodology",
+      "validators": ["L1_passed", "L2_passed", "L3_passed"],
+      "outputs": ["validation_report"],
+      "on_failure": "FAILED"
+    },
+    {
+      "id": "VERSION_BUMP",
+      "type": "Working",
+      "description": "Update version field according to change type",
+      "validators": ["version_updated", "changelog_updated"],
+      "outputs": ["new_version"]
+    },
+    {
+      "id": "COMPLETE",
+      "type": "Terminal",
+      "description": "Evolution complete. New version ready.",
+      "outputs": ["methodology.yaml", "CHANGELOG.md"]
+    },
+    {
+      "id": "FAILED",
+      "type": "Error",
+      "description": "Evolution failed",
+      "outputs": ["error_details", "rollback_instructions"]
+    }
+  ],
+  "nodes": {
+    "meta:schema-validator": "^1.0.0"
+  }
+}

@@ -30,3 +30,5 @@ skills:
 processes:
   - methodology_creation
   - methodology_validation
+  - methodology_migration
+  - methodology_evolution
