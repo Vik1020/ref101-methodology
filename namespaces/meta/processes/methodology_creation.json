@@ -1,0 +1,123 @@
+{
+  "process_id": "methodology_creation",
+  "version": "1.0.0",
+  "name": "Methodology Creation Wizard",
+  "type": "wizard",
+  "description": "Interactive wizard for creating new methodologies. Guides through 8 elements definition with questions at each step.",
+  "phases": [
+    {
+      "id": "CONCEPTION",
+      "name": "Conception",
+      "type": "Initial",
+      "description": "Define basic methodology information",
+      "template": "CONCEPTION.md",
+      "validators": ["has_name", "has_domain", "has_problem"],
+      "outputs": ["namespace.yaml", "methodology.yaml (skeleton)", "README.md"]
+    },
+    {
+      "id": "ENTITY_DESIGN",
+      "name": "Entity Design",
+      "type": "Working",
+      "description": "Define central entity passing through the process",
+      "template": "ENTITY_DESIGN.md",
+      "validators": ["has_entity_type", "has_entity_fields"],
+      "outputs": ["methodology.yaml → entities[]"]
+    },
+    {
+      "id": "STATES_DESIGN",
+      "name": "States Design",
+      "type": "Working",
+      "description": "Define entity lifecycle phases",
+      "template": "STATES_DESIGN.md",
+      "validators": ["has_initial_state", "has_terminal_state", "has_error_state", "unique_state_ids"],
+      "outputs": ["methodology.yaml → states[]"]
+    },
+    {
+      "id": "FACTS_DESIGN",
+      "name": "Facts Design",
+      "type": "Working",
+      "description": "Define events (transitions between states)",
+      "template": "FACTS_DESIGN.md",
+      "validators": ["all_states_have_exit", "no_orphan_states"],
+      "outputs": ["methodology.yaml → facts[]"]
+    },
+    {
+      "id": "WORKFORCE_DESIGN",
+      "name": "Workforce Design",
+      "type": "Working",
+      "description": "Define actors and their tools",
+      "template": "WORKFORCE_DESIGN.md",
+      "validators": ["has_actor", "actors_have_tools", "tool_actor_compatible"],
+      "outputs": ["methodology.yaml → actors[]", "methodology.yaml → tools[]"]
+    },
+    {
+      "id": "ACTIONS_DESIGN",
+      "name": "Actions Design",
+      "type": "Working",
+      "description": "Define actions for each actor in each state",
+      "template": "ACTIONS_DESIGN.md",
+      "validators": ["actions_have_actor_tool", "states_have_actions", "facts_have_triggers"],
+      "outputs": ["methodology.yaml → actions[]"]
+    },
+    {
+      "id": "RULES_DESIGN",
+      "name": "Rules Design",
+      "type": "Working",
+      "description": "Define constraints and conditions",
+      "template": "RULES_DESIGN.md",
+      "validators": ["rules_testable", "waiting_states_have_timeout"],
+      "outputs": ["methodology.yaml → rules[]"]
+    },
+    {
+      "id": "VALIDATION",
+      "name": "Validation",
+      "type": "Working",
+      "description": "Validate methodology for correctness",
+      "template": "VALIDATION.md",
+      "validators": ["L1_schema", "L2_links", "L3_analysis"],
+      "on_failure": "return_to_relevant_phase",
+      "outputs": ["validation_report.md"]
+    },
+    {
+      "id": "COMPLETE",
+      "name": "Complete",
+      "type": "Terminal",
+      "description": "Methodology created and ready to use",
+      "template": "COMPLETE.md",
+      "outputs": ["methodology.yaml", "namespace.yaml", "README.md", "GLOSSARY.md"]
+    }
+  ],
+  "artifacts": [
+    {
+      "id": "namespace_yaml",
+      "name": "namespace.yaml",
+      "created_in": "CONCEPTION"
+    },
+    {
+      "id": "methodology_yaml",
+      "name": "methodology.yaml",
+      "created_in": "CONCEPTION",
+      "updated_in": ["ENTITY_DESIGN", "STATES_DESIGN", "FACTS_DESIGN", "WORKFORCE_DESIGN", "ACTIONS_DESIGN", "RULES_DESIGN"]
+    },
+    {
+      "id": "readme",
+      "name": "README.md",
+      "created_in": "CONCEPTION",
+      "updated_in": ["COMPLETE"]
+    },
+    {
+      "id": "glossary",
+      "name": "GLOSSARY.md",
+      "created_in": "CONCEPTION"
+    },
+    {
+      "id": "validation_report",
+      "name": "validation_report.md",
+      "created_in": "VALIDATION"
+    }
+  ],
+  "nodes": {
+    "meta:schema-validator": "^1.0.0",
+    "meta:methodology-templates": "^1.0.0"
+  }
+}

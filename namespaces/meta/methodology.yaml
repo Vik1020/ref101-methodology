@@ -31,28 +31,89 @@ entities:
       facts: "array (required)"
 
 # === STATES (Lifecycle phases) ===
+# Wizard states (from methodology_creation process)
 states:
-  - id: "DESIGN"
-    name: "Design"
+  - id: "CONCEPTION"
+    name: "Conception"
     type: "Initial"
     allowed_actions:
-      - "define_elements"
+      - "define_basics"
     exit_conditions:
-      - "elements_defined"
+      - "basics_defined"
 
-  - id: "VALIDATE"
-    name: "Validate"
+  - id: "ENTITY_DESIGN"
+    name: "Entity Design"
+    type: "Working"
+    allowed_actions:
+      - "define_entity"
+    entry_conditions:
+      - "basics_defined"
+    exit_conditions:
+      - "entity_defined"
+
+  - id: "STATES_DESIGN"
+    name: "States Design"
+    type: "Working"
+    allowed_actions:
+      - "define_states"
+    entry_conditions:
+      - "entity_defined"
+    exit_conditions:
+      - "states_defined"
+
+  - id: "FACTS_DESIGN"
+    name: "Facts Design"
+    type: "Working"
+    allowed_actions:
+      - "define_facts"
+    entry_conditions:
+      - "states_defined"
+    exit_conditions:
+      - "facts_defined"
+
+  - id: "WORKFORCE_DESIGN"
+    name: "Workforce Design"
+    type: "Working"
+    allowed_actions:
+      - "define_workforce"
+    entry_conditions:
+      - "facts_defined"
+    exit_conditions:
+      - "workforce_defined"
+
+  - id: "ACTIONS_DESIGN"
+    name: "Actions Design"
+    type: "Working"
+    allowed_actions:
+      - "define_actions"
+    entry_conditions:
+      - "workforce_defined"
+    exit_conditions:
+      - "actions_defined"
+
+  - id: "RULES_DESIGN"
+    name: "Rules Design"
+    type: "Working"
+    allowed_actions:
+      - "define_rules"
+    entry_conditions:
+      - "actions_defined"
+    exit_conditions:
+      - "rules_defined"
+
+  - id: "VALIDATION"
+    name: "Validation"
     type: "Working"
     allowed_actions:
       - "validate_methodology"
     entry_conditions:
-      - "elements_defined"
+      - "rules_defined"
     exit_conditions:
       - "validation_passed"
       - "validation_failed"
 
-  - id: "PUBLISH"
-    name: "Published"
+  - id: "COMPLETE"
+    name: "Complete"
     type: "Terminal"
     allowed_actions: []
     entry_conditions:
@@ -115,15 +176,75 @@ tools:
 
 # === ACTIONS (Units of work) ===
 actions:
-  - id: "define_elements"
-    name: "Define Elements"
-    actor: "methodology_designer"
+  - id: "define_basics"
+    name: "Define Basics"
+    actor: "claude_agent"
     tool: "yaml_editor"
     input: "methodology"
     allowed_in_states:
-      - "DESIGN"
+      - "CONCEPTION"
     output:
-      fact: "elements_defined"
+      fact: "basics_defined"
+
+  - id: "define_entity"
+    name: "Define Entity"
+    actor: "claude_agent"
+    tool: "yaml_editor"
+    input: "methodology"
+    allowed_in_states:
+      - "ENTITY_DESIGN"
+    output:
+      fact: "entity_defined"
+
+  - id: "define_states"
+    name: "Define States"
+    actor: "claude_agent"
+    tool: "yaml_editor"
+    input: "methodology"
+    allowed_in_states:
+      - "STATES_DESIGN"
+    output:
+      fact: "states_defined"
+
+  - id: "define_facts"
+    name: "Define Facts"
+    actor: "claude_agent"
+    tool: "yaml_editor"
+    input: "methodology"
+    allowed_in_states:
+      - "FACTS_DESIGN"
+    output:
+      fact: "facts_defined"
+
+  - id: "define_workforce"
+    name: "Define Workforce"
+    actor: "claude_agent"
+    tool: "yaml_editor"
+    input: "methodology"
+    allowed_in_states:
+      - "WORKFORCE_DESIGN"
+    output:
+      fact: "workforce_defined"
+
+  - id: "define_actions"
+    name: "Define Actions"
+    actor: "claude_agent"
+    tool: "yaml_editor"
+    input: "methodology"
+    allowed_in_states:
+      - "ACTIONS_DESIGN"
+    output:
+      fact: "actions_defined"
+
+  - id: "define_rules"
+    name: "Define Rules"
+    actor: "claude_agent"
+    tool: "yaml_editor"
+    input: "methodology"
+    allowed_in_states:
+      - "RULES_DESIGN"
+    output:
+      fact: "rules_defined"
 
   - id: "validate_methodology"
     name: "Validate Methodology"
@@ -131,7 +252,7 @@ actions:
     tool: "meta_cli"
     input: "methodology"
     allowed_in_states:
-      - "VALIDATE"
+      - "VALIDATION"
     output:
       fact: "validation_passed"
     retry:
@@ -166,28 +287,64 @@ artifacts:
 
 # === FACTS (Events triggering transitions) ===
 facts:
-  - id: "elements_defined"
-    name: "Elements Defined"
-    from_state: "DESIGN"
-    to_state: "VALIDATE"
-    triggered_by: "define_elements"
+  - id: "basics_defined"
+    name: "Basics Defined"
+    from_state: "CONCEPTION"
+    to_state: "ENTITY_DESIGN"
+    triggered_by: "define_basics"
+
+  - id: "entity_defined"
+    name: "Entity Defined"
+    from_state: "ENTITY_DESIGN"
+    to_state: "STATES_DESIGN"
+    triggered_by: "define_entity"
+
+  - id: "states_defined"
+    name: "States Defined"
+    from_state: "STATES_DESIGN"
+    to_state: "FACTS_DESIGN"
+    triggered_by: "define_states"
+
+  - id: "facts_defined"
+    name: "Facts Defined"
+    from_state: "FACTS_DESIGN"
+    to_state: "WORKFORCE_DESIGN"
+    triggered_by: "define_facts"
+
+  - id: "workforce_defined"
+    name: "Workforce Defined"
+    from_state: "WORKFORCE_DESIGN"
+    to_state: "ACTIONS_DESIGN"
+    triggered_by: "define_workforce"
+
+  - id: "actions_defined"
+    name: "Actions Defined"
+    from_state: "ACTIONS_DESIGN"
+    to_state: "RULES_DESIGN"
+    triggered_by: "define_actions"
+
+  - id: "rules_defined"
+    name: "Rules Defined"
+    from_state: "RULES_DESIGN"
+    to_state: "VALIDATION"
+    triggered_by: "define_rules"
 
   - id: "validation_passed"
     name: "Validation Passed"
-    from_state: "VALIDATE"
-    to_state: "PUBLISH"
+    from_state: "VALIDATION"
+    to_state: "COMPLETE"
     triggered_by: "validate_methodology"
 
   - id: "validation_failed"
     name: "Validation Failed"
-    from_state: "VALIDATE"
+    from_state: "VALIDATION"
     to_state: "ERROR"
     triggered_by: "validate_methodology"
 
   - id: "errors_fixed"
     name: "Errors Fixed"
     from_state: "ERROR"
-    to_state: "VALIDATE"
+    to_state: "VALIDATION"
     triggered_by: "fix_errors"
 
 # === RULES (Constraints and conditions) ===
@@ -203,39 +360,61 @@ rules:
     name: "Exactly One Initial State"
     type: "Invariant"
     condition: "count(states where type == 'Initial') == 1"
-    scope: "state(VALIDATE)"
+    scope: "state(VALIDATION)"
     on_violation: "Block"
 
   - id: "terminal_state_exists"
     name: "At Least One Terminal State"
     type: "Invariant"
     condition: "count(states where type == 'Terminal') >= 1"
-    scope: "state(VALIDATE)"
+    scope: "state(VALIDATION)"
     on_violation: "Block"
 
   - id: "no_deadlocks"
     name: "No Deadlock States"
     type: "Invariant"
     condition: "all non-Terminal states have exit transitions"
-    scope: "state(VALIDATE)"
+    scope: "state(VALIDATION)"
     on_violation: "Block"
 
   - id: "max_fix_iterations"
     name: "Maximum Fix Iterations"
     type: "Constraint"
     condition: "entity.fix_count <= 5"
-    scope: "transition(ERROR -> VALIDATE)"
+    scope: "transition(ERROR -> VALIDATION)"
     on_violation: "Redirect"
-    redirect_to: "DESIGN"
+    redirect_to: "CONCEPTION"
 
-# === PROCESSES (Predefined State compositions) ===
+# === PHASE DEFAULTS (SSOT for process phases) ===
+phase_defaults:
+  CONCEPTION:
+    template: "CONCEPTION.md"
+    validators: ["has_name", "has_domain", "has_problem"]
+  ENTITY_DESIGN:
+    template: "ENTITY_DESIGN.md"
+    validators: ["has_entity_type", "has_entity_fields"]
+  STATES_DESIGN:
+    template: "STATES_DESIGN.md"
+    validators: ["has_initial_state", "has_terminal_state", "has_error_state"]
+  FACTS_DESIGN:
+    template: "FACTS_DESIGN.md"
+    validators: ["all_states_have_exit", "no_orphan_states"]
+  WORKFORCE_DESIGN:
+    template: "WORKFORCE_DESIGN.md"
+    validators: ["has_actor", "actors_have_tools"]
+  ACTIONS_DESIGN:
+    template: "ACTIONS_DESIGN.md"
+    validators: ["actions_have_actor_tool", "states_have_actions"]
+  RULES_DESIGN:
+    template: "RULES_DESIGN.md"
+    validators: ["rules_testable", "waiting_states_have_timeout"]
+  VALIDATION:
+    template: "VALIDATION.md"
+    validators: ["L1_schema", "L2_links", "L3_analysis"]
+  COMPLETE:
+    template: "COMPLETE.md"
+
+# === PROCESSES (References to processes/*.json) ===
 processes:
   - id: "methodology_creation"
-    version: "1.0.0"
-    name: "Methodology Creation"
-    description: "Create and validate a new methodology"
-    states_sequence:
-      - "DESIGN"
-      - "VALIDATE"
-      - "PUBLISH"
-    approval_points: {}
+    definition_file: "processes/methodology_creation.json"

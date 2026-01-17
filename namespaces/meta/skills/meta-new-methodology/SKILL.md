@@ -3,426 +3,469 @@ name: meta-new-methodology
 description: Создаёт новый namespace в namespaces/. Генерирует структуру по 8 элементам мета-методологии. Используй при "создай методологию", "new methodology", "новый namespace".
 ---
 
-# Meta New Methodology Skill (v1.0.0)
+# Meta New Methodology Skill (Wizard v3.0.0)
 
-Создание нового namespace по мета-методологии — 8 invariant elements.
+Интерактивное создание методологии по мета-методологии — 8 invariant elements.
+
+**Два режима работы:**
+- **Quick mode** — быстрое создание шаблона (MCP-first)
+- **Wizard mode** — интерактивный процесс с вопросами на каждом шаге
 
 ## Trigger Keywords
 
-- "Создай методологию {name}"
-- "new methodology {name}"
-- "новый namespace {name}"
-- "/meta-new-methodology {name}"
+- "Создай методологию {name}" → Quick mode
+- "new methodology {name}" → Quick mode
+- "/meta-new-methodology {name}" → Quick mode
+- "Создай методологию" (без имени) → Wizard mode
+- "/meta-new-methodology --wizard" → Wizard mode
+- "Проведи меня через создание методологии" → Wizard mode
 
 ## Process Overview
 
+### Quick Mode
 ```
-PARSE → VALIDATE_NAME → GENERATE_STRUCTURE → CREATE_FILES → VERIFY
+PARSE → CREATE (MCP) → VALIDATE (MCP) → REPORT
 ```
 
-**No MCP required** — файловые операции через Edit/Write.
-
-## When to Use
-
-✅ Создание нового namespace для методологии
-✅ Генерация базовой структуры по 8 элементам
-✅ Bootstrapping новых процессов
-
-## When NOT to Use
-
-❌ Валидация существующей методологии → `/meta-validate`
-❌ Изменение существующего namespace
-❌ Экспорт методологии в другой проект → CLI `ref101-init`
+### Wizard Mode
+```
+CONCEPTION → ENTITY → STATES → FACTS → WORKFORCE → ACTIONS → RULES → VALIDATION → COMPLETE
+     ↓          ↓        ↓        ↓         ↓          ↓        ↓          ↓
+   [Q&A]     [Q&A]    [Q&A]    [Q&A]     [Q&A]      [Q&A]    [Q&A]    [Validate]
+```
 
 ---
 
-## Instructions
+## Mode Selection
+
+При запуске определи режим:
+
+| Условие | Режим |
+|---------|-------|
+| Указано имя (`/meta-new-methodology auth_flow`) | Quick |
+| Указан флаг `--wizard` | Wizard |
+| Имя не указано | **Спросить пользователя** |
+
+**Если имя не указано, спросить:**
+
+```
+Как создать методологию?
+
+1. Quick mode — создать шаблон и заполнить вручную
+2. Wizard mode — интерактивный процесс с вопросами
+
+Выберите режим:
+```
+
+---
+
+## Quick Mode Instructions
 
 ### 1. Parse Request
 
-Extract from user message:
-- **name**: Имя namespace (snake_case, e.g., "my_flow")
-- **description**: Краткое описание (опционально)
+Extract:
+- **name**: snake_case (e.g., "auth_flow")
+- **description**: опционально
 
-If name not provided, ask user.
+### 2. Create via MCP
 
-**Validation:**
-- Name must be snake_case: `^[a-z][a-z0-9_]*$`
-- Name must not exist in `namespaces/`
-- Reserved names: `meta`, `sccu`, `node-hub`
-
-### 2. Generate Directory Structure
-
-```bash
-namespaces/{name}/
-├── namespace.yaml
-├── methodology.yaml
-├── README.md
-├── GLOSSARY.md
-├── schema/
-│   └── .gitkeep
-├── skills/
-│   └── .gitkeep
-├── processes/
-│   └── .gitkeep
-├── bundles/
-│   └── minimal.yaml
-└── templates/
-    └── .gitkeep
+```
+Call: meta_create_namespace
+Args: { name: "{name}", description: "{description}" }
 ```
 
-### 3. Create namespace.yaml
+### 3. Validate via MCP
 
-```yaml
-namespace_id: {name}
-version: "1.0.0"
-name: "{Name (Title Case)}"
-description: |
-  {description or "TODO: Add description"}
-
-phases:
-  - INIT
-  - WORKING
-  - DONE
-
-bundles:
-  minimal:
-    path: bundles/minimal.yaml
-    description: "Basic {name} tools"
-
-skills: []
-
-processes: []
+```
+Call: meta_validate
+Args: { namespace: "{name}", level: "all" }
 ```
 
-### 4. Create methodology.yaml (Template)
+### 4. Report
 
-Generate methodology.yaml with 8 elements as template:
+```
+✅ Namespace '{name}' создан в namespaces/{name}/
 
-```yaml
-# =============================================================================
-# METHODOLOGY: {Name}
-# =============================================================================
-# TODO: Describe this methodology using the 8 invariant elements.
-# Reference: namespaces/meta/README.md
-# =============================================================================
-
-methodology_id: "{name}"
-version: "1.0.0"
-name: "{Name}"
-meta_version: "3.1"
-description: |
-  {description or "TODO: Add methodology description"}
-
-# === ENTITIES (Business objects passing through States) ===
-entities:
-  - id: "primary_entity"
-    type: "TODO"
-    role: "primary"
-    schema:
-      id: "string (required)"
-      name: "string (required)"
-
-# === STATES (Lifecycle phases) ===
-states:
-  - id: "INIT"
-    name: "Initial"
-    type: "Initial"
-    allowed_actions:
-      - "start_work"
-    exit_conditions:
-      - "work_started"
-
-  - id: "WORKING"
-    name: "Working"
-    type: "Working"
-    allowed_actions:
-      - "do_work"
-    entry_conditions:
-      - "work_started"
-    exit_conditions:
-      - "work_completed"
-
-  - id: "DONE"
-    name: "Done"
-    type: "Terminal"
-    allowed_actions: []
-    entry_conditions:
-      - "work_completed"
-
-# === ACTORS (Executors: Human, AI, System) ===
-actors:
-  - id: "human_actor"
-    name: "Human Actor"
-    type: "Human"
-    tools:
-      - "editor"
-    permissions:
-      - "start_work"
-      - "do_work"
-
-  - id: "ai_actor"
-    name: "AI Actor"
-    type: "AI"
-    tools:
-      - "cli"
-    permissions:
-      - "do_work"
-
-# === TOOLS (Instruments for Actions) ===
-tools:
-  - id: "editor"
-    name: "Editor"
-    type: "Script"
-    compatible_actors:
-      - "Human"
-      - "AI"
-    operations:
-      - "read"
-      - "write"
-
-  - id: "cli"
-    name: "CLI"
-    type: "Script"
-    compatible_actors:
-      - "AI"
-    operations:
-      - "execute"
-
-# === ACTIONS (Units of work) ===
-actions:
-  - id: "start_work"
-    name: "Start Work"
-    actor: "human_actor"
-    tool: "editor"
-    input: "primary_entity"
-    allowed_in_states:
-      - "INIT"
-    output:
-      fact: "work_started"
-
-  - id: "do_work"
-    name: "Do Work"
-    actor: "ai_actor"
-    tool: "cli"
-    input: "primary_entity"
-    allowed_in_states:
-      - "WORKING"
-    output:
-      fact: "work_completed"
-
-# === ARTIFACTS (Files/documents created) ===
-artifacts:
-  - id: "output_file"
-    name: "output.md"
-    type: "markdown"
-    created_by: "do_work"
-    entity_id: "primary_entity"
-
-# === FACTS (Events triggering transitions) ===
-facts:
-  - id: "work_started"
-    name: "Work Started"
-    from_state: "INIT"
-    to_state: "WORKING"
-    triggered_by: "start_work"
-
-  - id: "work_completed"
-    name: "Work Completed"
-    from_state: "WORKING"
-    to_state: "DONE"
-    triggered_by: "do_work"
-
-# === RULES (Constraints and conditions) ===
-rules:
-  - id: "must_have_entity"
-    name: "Entity Required"
-    type: "Precondition"
-    condition: "entity != null"
-    scope: "action(start_work)"
-    on_violation: "Block"
-
-# === PROCESSES (Predefined State compositions) ===
-processes: []
+Следующие шаги:
+1. Отредактируй methodology.yaml
+2. Запусти /meta-validate {name}
 ```
 
-### 5. Create README.md
+---
 
-```markdown
-# {Name} Methodology
+## Wizard Mode Instructions
 
-> Version: 1.0.0
+**Процесс:** `methodology_creation` (см. `processes/methodology_creation.yaml`)
 
-## Overview
+### Phase 1: CONCEPTION
 
-{description or "TODO: Add overview"}
+**Цель:** Собрать базовую информацию.
 
-## 8 Elements
+**Вопросы:**
 
-| Element | Count | Description |
-|---------|-------|-------------|
-| Entities | 1 | Business objects |
-| States | 3 | Lifecycle phases |
-| Actors | 2 | Human, AI |
-| Tools | 2 | Editor, CLI |
-| Actions | 2 | Work units |
-| Artifacts | 1 | Output files |
-| Facts | 2 | Transitions |
-| Rules | 1 | Constraints |
+1. **Название** (snake_case)
+   - "Как называется методология?"
+   - Валидация: `^[a-z][a-z0-9_]*$`
 
-## Quick Start
+2. **Человекочитаемое название**
+   - "Как называть для людей?"
 
-1. Edit `methodology.yaml` to define your process
-2. Run `/meta-validate {name}` to check validity
-3. Add skills in `skills/`
-4. Add processes in `processes/`
+3. **Домен**
+   - "К какой области относится?"
+   - Варианты: development, marketing, legal, operations, hr, finance, custom
 
-## Files
+4. **Проблема**
+   - "Какую проблему решает?"
 
-- `namespace.yaml` — Namespace definition
-- `methodology.yaml` — 8-element methodology spec
-- `GLOSSARY.md` — Domain terms
-- `bundles/minimal.yaml` — Basic bundle
+5. **Участники (preview)**
+   - "Кто будет участвовать?"
+   - Варианты: Human only, AI only, Human+AI, Human+AI+System
+
+**После ответов:**
+```
+Call: meta_create_namespace
+Args: { name: "{name}", description: "{problem}" }
 ```
 
-### 6. Create GLOSSARY.md
+**Шаблон:** `templates/phases/CONCEPTION.md`
 
-```markdown
-# {Name} Glossary
+---
 
-## Core Terms
+### Phase 2: ENTITY_DESIGN
 
-| Term | Definition |
-|------|------------|
-| Entity | Business object that passes through states |
-| State | Lifecycle phase of an entity |
-| Actor | Executor (Human, AI, System) |
-| Tool | Instrument used by actors |
-| Action | Unit of work performed by actor |
-| Artifact | File or document created |
-| Fact | Event that triggers state transition |
-| Rule | Constraint or condition |
+**Цель:** Определить центральную сущность.
 
-## Domain Terms
+**Контекст для пользователя:**
+> Entity — бизнес-объект, проходящий через все States.
+> Примеры: Document, Order, Ticket, Campaign, Release.
 
-<!-- Add domain-specific terms here -->
+**Вопросы:**
+
+1. **Тип Entity**
+   - "Какой объект проходит через процесс?"
+
+2. **Поля (Schema)**
+   - "Какие поля у объекта?"
+   - Формат: имя, тип, required, описание
+
+3. **Secondary Entities**
+   - "Будут ли дополнительные сущности?"
+
+**После ответов:** Обновить `methodology.yaml → entities[]`
+
+**Шаблон:** `templates/phases/ENTITY_DESIGN.md`
+
+---
+
+### Phase 3: STATES_DESIGN
+
+**Цель:** Определить жизненный цикл.
+
+**Контекст:**
+> States: Initial (начальный), Working (работа), Waiting (ожидание),
+> Terminal (конечный), Error (ошибка).
+
+**Вопросы:**
+
+1. **Initial State** — "Начальное состояние?"
+2. **Working States** — "Рабочие фазы?"
+3. **Waiting States** — "Фазы ожидания?"
+4. **Terminal Success** — "Успешное завершение?"
+5. **Terminal Failure** — "Варианты неуспеха?"
+6. **Error State** — "Состояние ошибки?"
+
+**Шаблон:** `templates/phases/STATES_DESIGN.md`
+
+---
+
+### Phase 4: FACTS_DESIGN
+
+**Цель:** Определить переходы между States.
+
+**Контекст:**
+> Facts — события в прошедшем времени (Created, Submitted, Approved).
+> Каждый Fact: from_state → to_state.
+
+**Вопросы:**
+
+1. **Transitions** — "Какие переходы между состояниями?"
+2. **Conditional Transitions** — "Есть ли переходы с условиями?"
+
+**Шаблон:** `templates/phases/FACTS_DESIGN.md`
+
+---
+
+### Phase 5: WORKFORCE_DESIGN
+
+**Цель:** Определить участников и инструменты.
+
+**Контекст:**
+> Actors: Human, AI, System.
+> Tools: UI, API, LLM, Script, MCP, Manual.
+
+**Вопросы:**
+
+1. **Human Actors** — "Какие роли у людей?"
+2. **AI Actors** — "Какие AI-агенты?"
+3. **System Actors** — "Системные участники?"
+4. **Tools** — "Какие инструменты?"
+
+**Проверка:** Actor-Tool совместимость.
+
+**Шаблон:** `templates/phases/WORKFORCE_DESIGN.md`
+
+---
+
+### Phase 6: ACTIONS_DESIGN
+
+**Цель:** Определить действия.
+
+**Контекст:**
+> Actions — единицы работы (глаголы: Create, Review, Approve).
+> Каждый Action: actor + tool + allowed_in_states.
+
+**Вопросы:**
+
+1. **Actions per State** — "Какие действия в каждом State?"
+2. **Retry config** — "Какие Actions требуют retry?"
+
+**Проверки:**
+- Все States имеют Actions
+- Все Facts triggered by Actions
+
+**Шаблон:** `templates/phases/ACTIONS_DESIGN.md`
+
+---
+
+### Phase 7: RULES_DESIGN
+
+**Цель:** Определить ограничения.
+
+**Контекст:**
+> Rules: Precondition, Guard, Timeout, Constraint, Invariant.
+> on_violation: Block, Redirect, Alert, Escalate.
+
+**Вопросы:**
+
+1. **Preconditions** — "Условия ДО действий?"
+2. **Guards** — "Условия на переходах?"
+3. **Timeouts** — "Ограничения по времени?"
+4. **Constraints** — "Общие ограничения?"
+
+**Шаблон:** `templates/phases/RULES_DESIGN.md`
+
+---
+
+### Phase 8: VALIDATION
+
+**Цель:** Проверить методологию.
+
+```
+Call: meta_validate
+Args: { namespace: "{name}", level: "all" }
 ```
 
-### 7. Create bundles/minimal.yaml
+**Уровни:**
+- L1: Schema validation
+- L2: Link validation
+- L3: Static analysis
 
-```yaml
-bundle_id: {name}-minimal
-methodology: {name}
-version: "1.0.0"
-description: "Basic {name} tools"
+**При ошибках:** Показать ошибки, предложить вернуться к фазе.
 
-includes:
-  skills: []
-  processes: []
+**Шаблон:** `templates/phases/VALIDATION.md`
+
+---
+
+### Phase 9: COMPLETE
+
+**Цель:** Финальный отчёт.
+
 ```
+✅ Методология '{name}' создана!
 
-### 8. Create .gitkeep files
-
-Create empty `.gitkeep` in: `schema/`, `skills/`, `processes/`, `templates/`
-
-### 9. Verify Structure
-
-After creation, verify:
-1. All directories exist
-2. All files created
-3. methodology.yaml is valid YAML
-
-Report to user:
-```
-✅ Namespace '{name}' created at namespaces/{name}/
-
-Files:
+Файлы:
 - namespace.yaml
-- methodology.yaml
+- methodology.yaml (8 элементов заполнены)
 - README.md
 - GLOSSARY.md
-- bundles/minimal.yaml
 
-Next steps:
-1. Edit methodology.yaml to define your 8 elements
-2. Run /meta-validate {name} to check validity
-3. Add skills and processes as needed
+Сводка:
+- Entities: {count}
+- States: {count}
+- Actors: {count}
+- Tools: {count}
+- Actions: {count}
+- Facts: {count}
+- Rules: {count}
+
+Следующие шаги:
+1. Добавить skills/
+2. Добавить processes/
+3. Интегрировать с MCP
 ```
+
+**Шаблон:** `templates/phases/COMPLETE.md`
+
+---
+
+## MCP Tools Reference
+
+| Tool | Purpose |
+|------|---------|
+| `meta_create_namespace` | Создать namespace со структурой |
+| `meta_validate` | Валидировать methodology.yaml |
 
 ---
 
 ## Error Handling
 
-### Name Already Exists
+### MCP Server Unavailable
 
 ```
-❌ Namespace '{name}' already exists at namespaces/{name}/
-
-Options:
-1. Choose a different name
-2. Delete existing namespace first (rm -rf namespaces/{name}/)
+❌ MCP сервер недоступен. Wizard mode требует MCP.
+Запустите: node tools/command-center/dist/mcp/server.js
 ```
 
-### Invalid Name Format
+### Namespace Already Exists
 
 ```
-❌ Invalid namespace name: '{name}'
-
-Requirements:
-- snake_case format: ^[a-z][a-z0-9_]*$
-- Examples: my_flow, auth_process, data_pipeline
+❌ Namespace '{name}' уже существует.
+Варианты:
+1. Выбрать другое имя
+2. Удалить существующий
+3. Использовать /meta-validate для проверки
 ```
 
-### Write Permission Error
+### Validation Failed
 
 ```
-❌ Cannot create directory: namespaces/{name}/
+⚠️ Валидация выявила ошибки:
 
-Check write permissions for the namespaces/ directory.
+{errors}
+
+Вернуться к фазе {phase}?
 ```
 
 ---
 
-## Example Session
+## Example Session (Wizard Mode)
 
 ```
-User: /meta-new-methodology auth_flow
+User: /meta-new-methodology --wizard
 
-Claude: Создаю namespace 'auth_flow' по мета-методологии.
+Claude: Начинаем создание методологии в режиме Wizard.
 
-[1/9] Parse: name=auth_flow, description=null
-[2/9] Validate: name OK, not exists ✓
-[3/9] Create directories...
-[4/9] Create namespace.yaml...
-[5/9] Create methodology.yaml (template)...
-[6/9] Create README.md...
-[7/9] Create GLOSSARY.md...
-[8/9] Create bundles/minimal.yaml...
-[9/9] Verify structure...
+═══════════════════════════════════════════════════════
+  Phase 1/9: CONCEPTION
+═══════════════════════════════════════════════════════
 
-✅ Namespace 'auth_flow' created at namespaces/auth_flow/
+Собираем базовую информацию о методологии.
 
-Files created:
-- namespaces/auth_flow/namespace.yaml
-- namespaces/auth_flow/methodology.yaml
-- namespaces/auth_flow/README.md
-- namespaces/auth_flow/GLOSSARY.md
-- namespaces/auth_flow/bundles/minimal.yaml
-- namespaces/auth_flow/schema/.gitkeep
-- namespaces/auth_flow/skills/.gitkeep
-- namespaces/auth_flow/processes/.gitkeep
-- namespaces/auth_flow/templates/.gitkeep
+❓ Как называется методология? (snake_case)
 
-Next steps:
-1. Edit methodology.yaml to define your 8 elements
-2. Run /meta-validate auth_flow to check validity
-3. Add skills and processes as needed
+User: document_approval
+
+Claude: ✓ Название: document_approval
+
+❓ Человекочитаемое название?
+
+User: Document Approval Process
+
+Claude: ✓ Название: Document Approval Process
+
+❓ К какой области относится?
+1. Development
+2. Marketing
+3. Legal
+4. Operations
+5. Other
+
+User: 4
+
+Claude: ✓ Домен: Operations
+
+❓ Какую проблему решает эта методология?
+
+User: Согласование документов занимает слишком много времени, статусы непрозрачны
+
+Claude: ✓ Проблема зафиксирована
+
+❓ Кто будет участвовать?
+1. Только люди
+2. Только AI
+3. Люди + AI совместно
+4. Люди + AI + Автоматизация
+
+User: 3
+
+Claude: ✓ Участники: Human + AI collaboration
+
+[meta_create_namespace] → success
+
+═══════════════════════════════════════════════════════
+  Phase 2/9: ENTITY_DESIGN
+═══════════════════════════════════════════════════════
+
+Определяем центральную сущность процесса.
+
+ℹ️ Entity — бизнес-объект, проходящий через все States.
+   Примеры: Document, Order, Ticket, Campaign.
+
+❓ Какой объект проходит через весь процесс?
+
+User: Document
+
+Claude: ✓ Entity: Document
+
+❓ Какие поля у Document? (формат: имя: тип)
+   Типы: string, number, boolean, date, enum[...]
+
+User:
+- title: string (required)
+- content: string (required)
+- author_id: string (required)
+- status: enum[draft, review, approved, rejected]
+- created_at: date
+
+Claude: ✓ Schema определена (5 полей)
+
+... [продолжение по всем фазам] ...
+
+═══════════════════════════════════════════════════════
+  Phase 8/9: VALIDATION
+═══════════════════════════════════════════════════════
+
+[meta_validate] → L1 ✓ L2 ✓ L3 ✓
+
+═══════════════════════════════════════════════════════
+  Phase 9/9: COMPLETE
+═══════════════════════════════════════════════════════
+
+✅ Методология 'document_approval' создана!
+
+Сводка:
+- Entities: 1 (Document)
+- States: 6 (Created → Drafting → Review → Approved/Rejected/Failed)
+- Actors: 3 (Author, Reviewer, AI Checker)
+- Tools: 4 (Editor UI, Review UI, LLM API, Email API)
+- Actions: 8
+- Facts: 7
+- Rules: 5
+
+Файлы: namespaces/document_approval/
+
+Следующие шаги:
+1. Просмотреть methodology.yaml
+2. Добавить skills/ для автоматизации
+3. Добавить processes/ для типовых сценариев
 ```
 
 ---
 
 ## Reference
 
+- Process definition: `namespaces/meta/processes/methodology_creation.yaml`
+- Phase templates: `namespaces/meta/templates/phases/`
 - Meta-methodology spec: `namespaces/meta/README.md`
 - Schema: `namespaces/meta/schema/meta-methodology.schema.yaml`
-- Validation: `/meta-validate`
+- Validation skill: `/meta-validate`

@@ -1,0 +1,19 @@
+namespace_id: content_generation
+version: "1.0.0"
+name: "Content Generation"
+description: |
+  AI-assisted content generation workflow for marketing materials
+
+phases:
+  - INIT
+  - WORKING
+  - DONE
+
+bundles:
+  minimal:
+    path: bundles/minimal.yaml
+    description: "Basic content_generation tools"
+
+skills: []
+
+processes: []

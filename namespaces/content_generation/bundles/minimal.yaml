@@ -1,0 +1,8 @@
+bundle_id: content_generation-minimal
+methodology: content_generation
+version: "1.0.0"
+description: "Basic content_generation tools"
+
+includes:
+  skills: []
+  processes: []

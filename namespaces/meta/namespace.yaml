@@ -11,10 +11,11 @@ description: |
   - Actor agnostic: Same rules for Human, AI, System
   - Explicit over implicit: Every element is named, typed, connected
 
+# Namespace lifecycle phases (not methodology states)
 phases:
-  - DESIGN
-  - VALIDATE
-  - PUBLISH
+  - INIT        # Namespace created
+  - ACTIVE      # In use
+  - DEPRECATED  # Being phased out
 
 bundles:
   minimal:
@@ -25,4 +26,6 @@ skills:
   - meta-new-methodology
   - meta-validate
 
-processes: []
+# References to processes/*.json
+processes:
+  - methodology_creation

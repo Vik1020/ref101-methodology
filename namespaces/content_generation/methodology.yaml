@@ -1,0 +1,326 @@
+# =============================================================================
+# METHODOLOGY: Content Generation
+# =============================================================================
+# AI-assisted content generation workflow for marketing materials.
+# Reference: namespaces/meta/README.md
+# =============================================================================
+
+methodology_id: "content_generation"
+version: "1.0.0"
+name: "Content Generation"
+meta_version: "3.1"
+description: |
+  AI-assisted content generation workflow for marketing materials.
+  Human provides brief, AI generates draft, Human reviews and approves.
+
+# === ENTITIES (Business objects passing through States) ===
+entities:
+  - id: "content"
+    type: "Content"
+    role: "primary"
+    schema:
+      id: "string (required)"
+      title: "string (required)"
+      brief: "string (required)"
+      content_type: "enum [article, social_post, email, video_script] (required)"
+      body: "string (nullable)"
+      quality_score: "number (nullable)"
+      iteration_count: "number (default: 0)"
+      created_at: "date (required)"
+      updated_at: "date (required)"
+
+# === STATES (Lifecycle phases) ===
+states:
+  - id: "BRIEFING"
+    name: "Briefing"
+    type: "Initial"
+    allowed_actions:
+      - "create_brief"
+    exit_conditions:
+      - "brief_created"
+
+  - id: "GENERATING"
+    name: "Generating"
+    type: "Working"
+    allowed_actions:
+      - "generate_content"
+    entry_conditions:
+      - "brief_created"
+      - "revision_requested"
+    exit_conditions:
+      - "content_generated"
+
+  - id: "REVIEW"
+    name: "Human Review"
+    type: "Waiting"
+    timeout: "24h"
+    allowed_actions:
+      - "approve"
+      - "reject"
+      - "request_revision"
+    entry_conditions:
+      - "content_generated"
+    exit_conditions:
+      - "content_approved"
+      - "content_rejected"
+      - "revision_requested"
+
+  - id: "PUBLISHED"
+    name: "Published"
+    type: "Terminal"
+    allowed_actions: []
+    entry_conditions:
+      - "content_approved"
+
+  - id: "REJECTED"
+    name: "Rejected"
+    type: "Terminal"
+    allowed_actions: []
+    entry_conditions:
+      - "content_rejected"
+
+  - id: "FAILED"
+    name: "Failed"
+    type: "Error"
+    allowed_actions:
+      - "retry"
+    entry_conditions:
+      - "generation_failed"
+    exit_conditions:
+      - "retry_requested"
+
+# === ACTORS (Executors: Human, AI, System) ===
+actors:
+  - id: "content_manager"
+    name: "Content Manager"
+    type: "Human"
+    tools:
+      - "brief_ui"
+      - "review_ui"
+    permissions:
+      - "create_brief"
+      - "approve"
+      - "reject"
+      - "request_revision"
+
+  - id: "ai_writer"
+    name: "AI Writer"
+    type: "AI"
+    tools:
+      - "llm_api"
+    permissions:
+      - "generate_content"
+
+  - id: "notifier"
+    name: "Notification Service"
+    type: "System"
+    tools:
+      - "slack_api"
+    permissions:
+      - "send_notification"
+
+# === TOOLS (Instruments for Actions) ===
+tools:
+  - id: "brief_ui"
+    name: "Brief Editor"
+    type: "UI"
+    compatible_actors:
+      - "Human"
+    operations:
+      - "create"
+      - "edit"
+
+  - id: "review_ui"
+    name: "Review Interface"
+    type: "UI"
+    compatible_actors:
+      - "Human"
+    operations:
+      - "view"
+      - "approve"
+      - "reject"
+      - "comment"
+
+  - id: "llm_api"
+    name: "Claude API"
+    type: "LLM"
+    compatible_actors:
+      - "AI"
+    operations:
+      - "generate"
+      - "refine"
+
+  - id: "slack_api"
+    name: "Slack Webhook"
+    type: "API"
+    compatible_actors:
+      - "System"
+    operations:
+      - "send_message"
+
+# === ACTIONS (Units of work) ===
+actions:
+  - id: "create_brief"
+    name: "Create Brief"
+    actor: "content_manager"
+    tool: "brief_ui"
+    input: "content"
+    allowed_in_states:
+      - "BRIEFING"
+    output:
+      fact: "brief_created"
+
+  - id: "generate_content"
+    name: "Generate Content"
+    actor: "ai_writer"
+    tool: "llm_api"
+    input: "content"
+    allowed_in_states:
+      - "GENERATING"
+    output:
+      fact: "content_generated"
+      entity_change: "content.body"
+    retry:
+      max_attempts: 3
+      delay: "exponential(base=1s, max=30s)"
+      on_exhausted: "generation_failed"
+
+  - id: "approve"
+    name: "Approve Content"
+    actor: "content_manager"
+    tool: "review_ui"
+    input: "content"
+    allowed_in_states:
+      - "REVIEW"
+    output:
+      fact: "content_approved"
+
+  - id: "reject"
+    name: "Reject Content"
+    actor: "content_manager"
+    tool: "review_ui"
+    input: "content"
+    allowed_in_states:
+      - "REVIEW"
+    output:
+      fact: "content_rejected"
+
+  - id: "request_revision"
+    name: "Request Revision"
+    actor: "content_manager"
+    tool: "review_ui"
+    input: "content"
+    allowed_in_states:
+      - "REVIEW"
+    output:
+      fact: "revision_requested"
+      entity_change: "content.iteration_count += 1"
+
+  - id: "retry"
+    name: "Retry Generation"
+    actor: "content_manager"
+    tool: "brief_ui"
+    input: "content"
+    allowed_in_states:
+      - "FAILED"
+    output:
+      fact: "retry_requested"
+
+# === ARTIFACTS (Files/documents created) ===
+artifacts:
+  - id: "content_draft"
+    name: "content_draft.md"
+    type: "markdown"
+    created_by: "generate_content"
+    entity_id: "content"
+
+  - id: "brief_document"
+    name: "brief.md"
+    type: "markdown"
+    created_by: "create_brief"
+    entity_id: "content"
+
+# === FACTS (Events triggering transitions) ===
+facts:
+  - id: "brief_created"
+    name: "Brief Created"
+    from_state: "BRIEFING"
+    to_state: "GENERATING"
+    triggered_by: "create_brief"
+
+  - id: "content_generated"
+    name: "Content Generated"
+    from_state: "GENERATING"
+    to_state: "REVIEW"
+    triggered_by: "generate_content"
+
+  - id: "content_approved"
+    name: "Content Approved"
+    from_state: "REVIEW"
+    to_state: "PUBLISHED"
+    triggered_by: "approve"
+
+  - id: "content_rejected"
+    name: "Content Rejected"
+    from_state: "REVIEW"
+    to_state: "REJECTED"
+    triggered_by: "reject"
+
+  - id: "revision_requested"
+    name: "Revision Requested"
+    from_state: "REVIEW"
+    to_state: "GENERATING"
+    triggered_by: "request_revision"
+
+  - id: "generation_failed"
+    name: "Generation Failed"
+    from_state: "GENERATING"
+    to_state: "FAILED"
+    triggered_by: "system_error"
+
+  - id: "retry_requested"
+    name: "Retry Requested"
+    from_state: "FAILED"
+    to_state: "GENERATING"
+    triggered_by: "retry"
+
+# === RULES (Constraints and conditions) ===
+rules:
+  - id: "required_brief"
+    name: "Brief Required"
+    type: "Precondition"
+    condition: "content.brief != null AND content.brief.length > 10"
+    scope: "action(generate_content)"
+    on_violation: "Block"
+
+  - id: "max_iterations"
+    name: "Maximum Iterations"
+    type: "Guard"
+    condition: "content.iteration_count < 5"
+    scope: "transition(REVIEW -> GENERATING)"
+    on_violation: "Redirect(REJECTED)"
+
+  - id: "review_timeout"
+    name: "Review Timeout"
+    type: "Constraint"
+    condition: "time_in_state(REVIEW) < 24h"
+    scope: "state(REVIEW)"
+    on_violation: "Alert"
+
+  - id: "quality_threshold"
+    name: "Quality Threshold"
+    type: "Guard"
+    condition: "content.quality_score >= 0.7"
+    scope: "transition(REVIEW -> PUBLISHED)"
+    on_violation: "Alert"
+
+# === PROCESSES (Predefined State compositions) ===
+processes:
+  - id: "standard_generation"
+    name: "Standard Content Generation"
+    type: "content_workflow"
+    states_sequence:
+      - "BRIEFING"
+      - "GENERATING"
+      - "REVIEW"
+      - "PUBLISHED"
