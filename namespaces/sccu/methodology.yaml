@@ -884,6 +884,14 @@ rules:
     condition: "fact_exists('qa_approved')"
     scope: "transition(QA -> DEPLOY)"
     on_violation: "Block"
+  # === Error recovery constraint (Spec 6.5: Loop must have max_iterations) ===
+  - id: "max_error_retries"
+    name: "Maximum Error Retries"
+    type: "Constraint"
+    condition: "entity.retry_count <= 5"
+    scope: "transition(ERROR -> PC)"
+    on_violation: "Redirect"
+    redirect_to: "DEPLOY"
 
 # === PHASE DEFAULTS (SSOT for process generation) ===
 phase_defaults:
