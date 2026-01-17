@@ -20,6 +20,22 @@
       "outputs": ["change_list", "impact_analysis"]
     },
     {
+      "id": "CONTEXT_VALIDATION",
+      "name": "Context Validation (Optional)",
+      "type": "Working",
+      "optional": true,
+      "description": "Verify that evolution changes remain compatible with organizational context. Checks: Does evolution increase complexity beyond current maturity level? Prevents complexity creep.",
+      "guide": "guides/methodology_design/CONTEXT_ASSESSMENT.md",
+      "validators": [
+        "context_compatibility_checked",
+        "complexity_within_bounds",
+        "no_maturity_mismatch"
+      ],
+      "outputs": ["context_compatibility_report.md"],
+      "skip_allowed": true,
+      "skip_rationale": "Can skip for patch changes or if recent assessment shows high maturity (Level 4-5)"
+    },
+    {
       "id": "CLASSIFY",
       "type": "Working",
       "description": "Classify change type: patch (rule threshold), minor (new state/actor), major (breaking schema)",
@@ -71,7 +87,60 @@
       "outputs": ["error_details", "rollback_instructions"]
     }
   ],
+  "artifacts": [
+    {
+      "id": "context_compatibility_report",
+      "name": "context_compatibility_report.md",
+      "created_in": "CONTEXT_VALIDATION",
+      "optional": true,
+      "description": "Report analyzing compatibility between evolution changes and organizational context/maturity",
+      "schema": {
+        "current_maturity_level": "number (1-5)",
+        "evolution_change_type": "string (patch | minor | major)",
+        "complexity_analysis": {
+          "states_before": "number",
+          "states_after": "number",
+          "states_delta": "number",
+          "actors_before": "number",
+          "actors_after": "number",
+          "actors_delta": "number",
+          "approval_stages_before": "number",
+          "approval_stages_after": "number",
+          "approval_stages_delta": "number",
+          "artifacts_before": "number",
+          "artifacts_after": "number",
+          "artifacts_delta": "number"
+        },
+        "maturity_recommendations": {
+          "recommended_max_states_for_level": "number",
+          "recommended_max_actors_for_level": "number",
+          "recommended_max_approvals_for_level": "number"
+        },
+        "compatibility_check": {
+          "status": "string (COMPATIBLE | WARNING | INCOMPATIBLE)",
+          "issues": [
+            {
+              "severity": "string (info | warning | error)",
+              "element": "string (states | actors | actions | artifacts | rules)",
+              "issue": "string (description)",
+              "recommendation": "string (what to do)",
+              "example": "string (e.g., 'States increased from 5 → 8 (recommended max for Level 2: 5). Consider splitting evolution or re-assessing maturity.')"
+            }
+          ]
+        },
+        "final_recommendation": {
+          "proceed": "boolean",
+          "rationale": "string",
+          "conditions": "array[string] (e.g., ['Re-assess maturity first', 'Split into 2 minor versions'])"
+        }
+      }
+    }
+  ],
   "nodes": {
     "meta:schema-validator": "^1.0.0"
+  },
+  "notes": {
+    "context_validation_integration": "CONTEXT_VALIDATION phase consumes maturity_level.json from methodology_maturity_assessment process to check current organizational maturity before allowing evolution",
+    "example_warning": "If org is Level 2 (score 45) but evolution adds 10 new states → WARNING: 'States increased from 5 → 8 (recommended max for Level 2: 5). Consider splitting evolution or re-assessing maturity.'"
   }
 }

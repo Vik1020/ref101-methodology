@@ -15,6 +15,20 @@
       "outputs": ["namespace.yaml", "methodology.yaml (skeleton)", "README.md"]
     },
     {
+      "id": "CONTEXT_ASSESSMENT",
+      "name": "Context Assessment (Optional)",
+      "type": "Working",
+      "optional": true,
+      "description": "Assess organizational context to guide methodology design. Evaluates culture, tech maturity, resources, compliance needs, and evolution readiness. Provides design recommendations (states count, actors types, approval stages) tailored to your organization.",
+      "template": "CONTEXT_ASSESSMENT.md",
+      "guide": "guides/methodology_design/CONTEXT_ASSESSMENT.md",
+      "assessment_template": "templates/methodology_design/CONTEXT_ASSESSMENT_TEMPLATE.md",
+      "validators": ["assessment_completed", "score_calculated", "recommendations_generated"],
+      "outputs": ["context_assessment.md", "design_recommendations.yaml"],
+      "skip_allowed": true,
+      "skip_rationale": "Can be skipped if designers already know their target maturity level and design constraints. Recommended for first-time methodology designers."
+    },
+    {
       "id": "ENTITY_DESIGN",
       "name": "Entity Design",
       "type": "Working",
@@ -92,6 +106,20 @@
       "id": "namespace_yaml",
       "name": "namespace.yaml",
       "created_in": "CONCEPTION"
+    },
+    {
+      "id": "context_assessment",
+      "name": "context_assessment.md",
+      "created_in": "CONTEXT_ASSESSMENT",
+      "optional": true,
+      "description": "Organizational context assessment results with readiness score and dimension scores"
+    },
+    {
+      "id": "design_recommendations",
+      "name": "design_recommendations.yaml",
+      "created_in": "CONTEXT_ASSESSMENT",
+      "optional": true,
+      "description": "Design recommendations based on context assessment (states count, actors types, approval stages, artifact complexity)"
     },
     {
       "id": "methodology_yaml",

@@ -1,0 +1,340 @@
+{
+  "process_id": "methodology_readiness_assessment",
+  "version": "1.0.0",
+  "name": "Methodology Readiness Assessment",
+  "type": "assessment",
+  "group": "EFFECTIVENESS",
+  "description": "Standalone process to assess organizational readiness BEFORE creating or adopting a methodology. Evaluates 5 dimensions (Culture 30%, Tech Maturity 25%, Resources 20%, Compliance 15%, Evolution Readiness 10%) and provides tailored design recommendations.",
+  "phases": [
+    {
+      "id": "INIT",
+      "name": "Initialize Assessment",
+      "type": "Initial",
+      "description": "Define assessment scope and gather stakeholders (3-5 people recommended: PM, Engineer, QA, Manager)",
+      "validators": [
+        "scope_defined",
+        "stakeholders_identified"
+      ],
+      "outputs": [
+        "assessment_config.yaml"
+      ]
+    },
+    {
+      "id": "GATHER_RESPONSES",
+      "name": "Gather Assessment Responses",
+      "type": "Working",
+      "description": "Complete 20-question assessment across 5 dimensions (4 questions per dimension). Each question scored 1-5.",
+      "template": "CONTEXT_ASSESSMENT_TEMPLATE.md",
+      "guide": "guides/methodology_design/CONTEXT_ASSESSMENT.md",
+      "validators": [
+        "all_questions_answered",
+        "scores_valid_range"
+      ],
+      "outputs": [
+        "raw_responses.yaml"
+      ],
+      "timeout": "7d"
+    },
+    {
+      "id": "CALCULATE_SCORES",
+      "name": "Calculate Dimension Scores",
+      "type": "Working",
+      "description": "Calculate weighted average: Culture×30% + Tech Maturity×25% + Resources×20% + Compliance×15% + Evolution Readiness×10%",
+      "validators": [
+        "dimension_scores_calculated",
+        "total_score_calculated",
+        "scores_within_bounds"
+      ],
+      "outputs": [
+        "readiness_score.json"
+      ]
+    },
+    {
+      "id": "GENERATE_RECOMMENDATIONS",
+      "name": "Generate Design Recommendations",
+      "type": "Working",
+      "description": "Map total score to maturity level (1-5) and generate design constraints for states, actors, actions, artifacts, rules",
+      "guide": "guides/methodology_design/CONTEXT_ASSESSMENT.md",
+      "validators": [
+        "maturity_level_determined",
+        "design_constraints_generated",
+        "recommendations_actionable"
+      ],
+      "outputs": [
+        "design_recommendations.yaml"
+      ]
+    },
+    {
+      "id": "STAKEHOLDER_REVIEW",
+      "name": "Stakeholder Review (Optional)",
+      "type": "Waiting",
+      "optional": true,
+      "description": "Optional review by leadership to validate assessment results before using in methodology design",
+      "approval": {
+        "required": false,
+        "role": "methodology_owner",
+        "timeout": "3d"
+      },
+      "validators": [
+        "reviewed_by_stakeholder"
+      ],
+      "skip_allowed": true,
+      "skip_rationale": "Can skip if assessor has authority to make design decisions independently"
+    },
+    {
+      "id": "COMPLETE",
+      "name": "Assessment Complete",
+      "type": "Terminal",
+      "description": "Readiness assessment completed. Results ready for use in methodology design (methodology_creation process).",
+      "outputs": [
+        "readiness_assessment.md",
+        "readiness_score.json",
+        "design_recommendations.yaml"
+      ]
+    },
+    {
+      "id": "FAILED",
+      "name": "Assessment Failed",
+      "type": "Error",
+      "description": "Assessment could not be completed due to insufficient responses or invalid scoring",
+      "outputs": [
+        "error_report.md"
+      ]
+    }
+  ],
+  "artifacts": [
+    {
+      "id": "assessment_config",
+      "name": "assessment_config.yaml",
+      "created_in": "INIT",
+      "description": "Assessment configuration: organization name, stakeholders, assessment date, scope",
+      "schema": {
+        "organization": "string",
+        "assessment_date": "ISO8601",
+        "stakeholders": [
+          {
+            "name": "string",
+            "role": "string",
+            "email": "string"
+          }
+        ],
+        "scope": {
+          "team_name": "string",
+          "team_size": "number",
+          "department": "string"
+        },
+        "multi_stakeholder": "boolean (default: false)"
+      }
+    },
+    {
+      "id": "raw_responses",
+      "name": "raw_responses.yaml",
+      "created_in": "GATHER_RESPONSES",
+      "description": "Raw assessment responses (20 questions, scored 1-5)",
+      "schema": {
+        "culture": {
+          "q1_collaboration": "number (1-5)",
+          "q2_resistance_to_change": "number (1-5)",
+          "q3_documentation_habits": "number (1-5)",
+          "q4_learning_culture": "number (1-5)",
+          "average": "number (calculated)"
+        },
+        "tech_maturity": {
+          "q5_tool_sophistication": "number (1-5)",
+          "q6_automation_level": "number (1-5)",
+          "q7_infrastructure_stability": "number (1-5)",
+          "q8_ai_readiness": "number (1-5)",
+          "average": "number (calculated)"
+        },
+        "resources": {
+          "q9_team_size_adequacy": "number (1-5)",
+          "q10_budget_availability": "number (1-5)",
+          "q11_time_capacity": "number (1-5)",
+          "q12_skill_level": "number (1-5)",
+          "average": "number (calculated)"
+        },
+        "compliance_needs": {
+          "q13_regulatory_requirements": "number (1-5)",
+          "q14_audit_frequency": "number (1-5)",
+          "q15_risk_tolerance": "number (1-5)",
+          "average": "number (calculated)"
+        },
+        "evolution_readiness": {
+          "q16_incremental_preference": "number (1-5)",
+          "q17_rollback_capability": "number (1-5)",
+          "q18_pilot_willingness": "number (1-5)",
+          "average": "number (calculated)"
+        }
+      }
+    },
+    {
+      "id": "readiness_score",
+      "name": "readiness_score.json",
+      "created_in": "CALCULATE_SCORES",
+      "description": "Calculated dimension scores and total readiness score (0-100)",
+      "schema": {
+        "dimensions": {
+          "culture": {
+            "average": "number (1-5)",
+            "score_100": "number (0-100)",
+            "weight": 0.30,
+            "weighted_contribution": "number (0-30)"
+          },
+          "tech_maturity": {
+            "average": "number (1-5)",
+            "score_100": "number (0-100)",
+            "weight": 0.25,
+            "weighted_contribution": "number (0-25)"
+          },
+          "resources": {
+            "average": "number (1-5)",
+            "score_100": "number (0-100)",
+            "weight": 0.20,
+            "weighted_contribution": "number (0-20)"
+          },
+          "compliance_needs": {
+            "average": "number (1-5)",
+            "score_100": "number (0-100)",
+            "weight": 0.15,
+            "weighted_contribution": "number (0-15)"
+          },
+          "evolution_readiness": {
+            "average": "number (1-5)",
+            "score_100": "number (0-100)",
+            "weight": 0.10,
+            "weighted_contribution": "number (0-10)"
+          }
+        },
+        "total_score": "number (0-100)",
+        "maturity_level": "number (1-5)",
+        "maturity_label": "string (Ad-hoc | Managed | Defined | Quantitatively Managed | Optimizing)",
+        "context_recommendation": "string (startup | scaleup | enterprise)",
+        "bundle_recommendation": "string (minimal | standard | enterprise)"
+      }
+    },
+    {
+      "id": "design_recommendations",
+      "name": "design_recommendations.yaml",
+      "created_in": "GENERATE_RECOMMENDATIONS",
+      "description": "Actionable design constraints based on readiness score and maturity level",
+      "schema": {
+        "design_constraints": {
+          "states": {
+            "recommended_count": "string (e.g., '3-5', '5-8', '8-15')",
+            "types_allowed": [
+              "string (Initial | Working | Terminal | Error | Waiting)"
+            ],
+            "avoid": [
+              "string (e.g., 'Parallel branches', 'Complex branching')"
+            ],
+            "rationale": "string"
+          },
+          "actors": {
+            "recommended_count": "string (e.g., '1-2', '3-5', '5-10')",
+            "types_allowed": [
+              "string (Human | AI | System)"
+            ],
+            "permissions": "string (e.g., 'Broad', 'Strict RBAC')",
+            "rationale": "string"
+          },
+          "actions": {
+            "recommended_count": "string (e.g., '3-7', '8-15', '15-30')",
+            "approval_stages": "string (e.g., '0-1', '1-2', '3-5')",
+            "automation_level": "string (e.g., 'Manual', 'Semi-automated', 'Fully automated')",
+            "rationale": "string"
+          },
+          "artifacts": {
+            "recommended_count": "string (e.g., '1-2', '3-6', '8-15')",
+            "format": "string (e.g., 'Markdown', 'YAML/JSON', 'Complex schemas')",
+            "fields": "string (e.g., '5-10', '15-30', '50+')",
+            "rationale": "string"
+          },
+          "rules": {
+            "recommended_count": "string (e.g., '1-3', '5-10', '15-30')",
+            "types_allowed": [
+              "string (Precondition | Postcondition | Invariant | Constraint | Guard | Compensation)"
+            ],
+            "complexity": "string (e.g., 'Simple boolean', 'Conditional logic', 'Complex predicates')",
+            "rationale": "string"
+          }
+        },
+        "bundle_recommendation": {
+          "bundle": "string (minimal | standard | enterprise)",
+          "rationale": "string",
+          "phases_to_include": [
+            "string (phase IDs)"
+          ],
+          "phases_to_skip": [
+            "string (phase IDs with rationale)"
+          ]
+        },
+        "pilot_recommendations": {
+          "recommended": "boolean",
+          "duration": "string (e.g., '4 weeks', '8 weeks')",
+          "team_size": "string (e.g., '3-5 people')",
+          "success_criteria": [
+            "string"
+          ]
+        },
+        "evolution_path": {
+          "current_version": "string (V1.0)",
+          "next_milestone": "string (V2.0)",
+          "evolution_triggers": [
+            "string (conditions for evolving to next version)"
+          ],
+          "timeline": "string (e.g., '3-6 months')"
+        }
+      }
+    },
+    {
+      "id": "readiness_assessment_report",
+      "name": "readiness_assessment.md",
+      "created_in": "COMPLETE",
+      "description": "Final assessment report with scores, recommendations, and next steps",
+      "schema": {
+        "executive_summary": "markdown",
+        "dimension_scores": "table (dimension, score, weight, contribution)",
+        "total_readiness_score": "number with interpretation",
+        "maturity_level": "number with label and description",
+        "design_recommendations": "markdown (actionable constraints)",
+        "bundle_recommendation": "markdown (bundle + rationale)",
+        "pilot_plan": "markdown (if recommended)",
+        "next_steps": "markdown (checklist)"
+      }
+    },
+    {
+      "id": "error_report",
+      "name": "error_report.md",
+      "created_in": "FAILED",
+      "description": "Error report if assessment failed",
+      "schema": {
+        "error_type": "string",
+        "error_message": "string",
+        "failed_phase": "string",
+        "troubleshooting_steps": "array[string]"
+      }
+    }
+  ],
+  "scheduling": {
+    "frequency": "on_demand",
+    "trigger": "User-initiated BEFORE methodology creation or adoption",
+    "typical_use_cases": [
+      "Before creating new methodology (/meta-new-methodology)",
+      "Before adopting existing methodology",
+      "Before major methodology evolution",
+      "Annual organizational readiness check"
+    ]
+  },
+  "dependencies": {
+    "consumes": [],
+    "produces": [
+      "readiness_score.json (consumed by methodology_creation)",
+      "design_recommendations.yaml (consumed by methodology_creation)"
+    ]
+  },
+  "notes": {
+    "integration_with_methodology_creation": "The CONTEXT_ASSESSMENT phase in methodology_creation.json can reuse results from this process instead of re-running assessment",
+    "multi_stakeholder_mode": "If assessment_config.yaml has multi_stakeholder=true, GATHER_RESPONSES phase should collect responses from all stakeholders and average them",
+    "score_interpretation": "0-30 (Level 1, HIGH RISK), 31-50 (Level 2, MEDIUM RISK), 51-70 (Level 2-3, LOW RISK), 71-85 (Level 3-4, LOW RISK), 86-100 (Level 4-5, VERY LOW RISK)"
+  }
+}

@@ -50,6 +50,36 @@ Flow:
 
 ---
 
+## Дизайн с учётом организационного контекста
+
+При создании новой методологии **контекст имеет значение**. Методология для enterprise overwhelm'ит startup. Минимальная методология для startup расстроит mature organization.
+
+**Фреймворк адаптации:**
+
+1. **Оценка контекста** → `guides/methodology_design/CONTEXT_ASSESSMENT.md`
+   - 5 измерений (Культура, Техническая зрелость, Ресурсы, Compliance, Эволюционная готовность)
+   - Readiness score (0-100)
+   - Рекомендации по дизайну
+
+2. **Дизайн по уровню зрелости** → `guides/methodology_design/MATURITY_AWARE_DESIGN.md`
+   - 5-уровневая модель зрелости (CMMI-inspired)
+   - Паттерны дизайна (Level 1: 3 states → Level 5: 15+ states)
+   - Примеры методологий
+
+3. **Инкрементальная эволюция** → `guides/methodology_design/INCREMENTAL_DESIGN.md`
+   - 3-фазная стратегия (V1.0 → V2.0 → V3.0)
+   - Pilot program (8 недель)
+   - Phased rollout
+
+4. **Паттерны адаптации** → `guides/methodology_design/ADAPTATION_PATTERNS.md`
+   - Культурные паттерны (Collaborative, Hierarchical, Innovation)
+   - Технические паттерны (Manual → Automated)
+   - Ресурсные паттерны (Constrained, Moderate, Abundant)
+
+**Быстрый старт:** `guides/methodology_design/README.md`
+
+---
+
 ## Содержание
 
 ### Быстрый старт

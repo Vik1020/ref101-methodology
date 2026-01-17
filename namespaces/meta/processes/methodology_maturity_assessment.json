@@ -1,0 +1,378 @@
+{
+  "process_id": "methodology_maturity_assessment",
+  "version": "1.0.0",
+  "name": "Methodology Maturity Assessment",
+  "type": "monitoring",
+  "group": "EFFECTIVENESS",
+  "description": "Continuous monitoring process to track organizational maturity over time across 6 capability areas (Process Documentation 20%, Tool Automation 25%, Quality Assurance 20%, Governance & Compliance 15%, Metrics & Analytics 15%, Change Management 5%). Includes trend analysis and improvement recommendations.",
+  "phases": [
+    {
+      "id": "INIT",
+      "name": "Initialize Maturity Tracking",
+      "type": "Initial",
+      "description": "Set up maturity tracking: establish baseline or load previous assessment",
+      "validators": [
+        "organization_identified",
+        "baseline_exists_or_will_create"
+      ],
+      "outputs": [
+        "maturity_config.yaml"
+      ]
+    },
+    {
+      "id": "EVALUATE_CAPABILITIES",
+      "name": "Evaluate 6 Capability Areas",
+      "type": "Working",
+      "description": "Assess each capability area on 1-5 scale: Process Documentation (20%), Tool Automation (25%), Quality Assurance (20%), Governance & Compliance (15%), Metrics & Analytics (15%), Change Management (5%)",
+      "guide": "guides/methodology_design/MATURITY_AWARE_DESIGN.md",
+      "validators": [
+        "all_capabilities_scored",
+        "scores_valid_range"
+      ],
+      "outputs": [
+        "capability_scores.yaml"
+      ],
+      "timeout": "7d"
+    },
+    {
+      "id": "DETERMINE_MATURITY_LEVEL",
+      "name": "Determine Overall Maturity Level",
+      "type": "Working",
+      "description": "Calculate weighted average maturity level (1-5): Level 1 (Ad-hoc), Level 2 (Managed), Level 3 (Defined), Level 4 (Quantitatively Managed), Level 5 (Optimizing)",
+      "validators": [
+        "weighted_score_calculated",
+        "maturity_level_valid"
+      ],
+      "outputs": [
+        "maturity_level.json"
+      ]
+    },
+    {
+      "id": "TREND_ANALYSIS",
+      "name": "Trend Analysis (If Previous Data Exists)",
+      "type": "Working",
+      "optional": true,
+      "description": "Compare with previous assessments to identify trends: improving, stable, declining. Calculate velocity and project next level date.",
+      "validators": [
+        "trends_calculated",
+        "previous_assessment_loaded"
+      ],
+      "outputs": [
+        "maturity_trends.json"
+      ],
+      "skip_allowed": true,
+      "skip_rationale": "Skip if this is first assessment (no historical data)"
+    },
+    {
+      "id": "GENERATE_RECOMMENDATIONS",
+      "name": "Generate Improvement Recommendations",
+      "type": "Working",
+      "description": "Identify capability gaps and recommend prioritized actions to advance to next maturity level",
+      "validators": [
+        "recommendations_generated",
+        "gaps_identified",
+        "prioritized"
+      ],
+      "outputs": [
+        "improvement_recommendations.yaml"
+      ]
+    },
+    {
+      "id": "STORE_REPORT",
+      "name": "Store Assessment Report",
+      "type": "Working",
+      "description": "Save to maturity/{organization}/{period}.md and update baseline if first run",
+      "validators": [
+        "report_stored",
+        "baseline_updated_if_first"
+      ],
+      "outputs": [
+        "maturity_report_{period}.md",
+        "maturity_baseline.json (if first)"
+      ]
+    },
+    {
+      "id": "COMPLETE",
+      "name": "Assessment Complete",
+      "type": "Terminal",
+      "description": "Maturity assessment completed. Report stored, trends analyzed, recommendations generated.",
+      "outputs": [
+        "maturity_report_{period}.md",
+        "maturity_trends.json",
+        "improvement_recommendations.yaml"
+      ]
+    },
+    {
+      "id": "FAILED",
+      "name": "Assessment Failed",
+      "type": "Error",
+      "description": "Assessment could not be completed due to insufficient data or scoring errors",
+      "outputs": [
+        "error_report.md"
+      ]
+    }
+  ],
+  "artifacts": [
+    {
+      "id": "maturity_config",
+      "name": "maturity_config.yaml",
+      "created_in": "INIT",
+      "description": "Maturity tracking configuration",
+      "schema": {
+        "organization": "string",
+        "period": "string (e.g., '2026-Q1', '2026-01')",
+        "assessment_date": "ISO8601",
+        "assessor": {
+          "name": "string",
+          "role": "string"
+        },
+        "baseline_exists": "boolean",
+        "baseline_date": "ISO8601 (if baseline_exists)",
+        "previous_assessments_count": "number"
+      }
+    },
+    {
+      "id": "capability_scores",
+      "name": "capability_scores.yaml",
+      "created_in": "EVALUATE_CAPABILITIES",
+      "description": "Scores for 6 capability areas (1-5 scale)",
+      "schema": {
+        "process_documentation": {
+          "score": "number (1-5)",
+          "weight": 0.20,
+          "evidence": "string (description of current state)",
+          "level_description": "string (L1-L5 description)"
+        },
+        "tool_automation": {
+          "score": "number (1-5)",
+          "weight": 0.25,
+          "evidence": "string",
+          "level_description": "string"
+        },
+        "quality_assurance": {
+          "score": "number (1-5)",
+          "weight": 0.20,
+          "evidence": "string",
+          "level_description": "string"
+        },
+        "governance_compliance": {
+          "score": "number (1-5)",
+          "weight": 0.15,
+          "evidence": "string",
+          "level_description": "string"
+        },
+        "metrics_analytics": {
+          "score": "number (1-5)",
+          "weight": 0.15,
+          "evidence": "string",
+          "level_description": "string"
+        },
+        "change_management": {
+          "score": "number (1-5)",
+          "weight": 0.05,
+          "evidence": "string",
+          "level_description": "string"
+        }
+      }
+    },
+    {
+      "id": "maturity_level",
+      "name": "maturity_level.json",
+      "created_in": "DETERMINE_MATURITY_LEVEL",
+      "updated_in": [
+        "STORE_REPORT"
+      ],
+      "description": "Overall maturity level (weighted average of 6 capabilities)",
+      "schema": {
+        "weighted_average": "number (1-5)",
+        "maturity_level": "number (1-5, rounded)",
+        "maturity_label": "string (Ad-hoc | Managed | Defined | Quantitatively Managed | Optimizing)",
+        "capability_breakdown": {
+          "process_documentation": {
+            "score": "number",
+            "weighted_contribution": "number"
+          },
+          "tool_automation": {
+            "score": "number",
+            "weighted_contribution": "number"
+          },
+          "quality_assurance": {
+            "score": "number",
+            "weighted_contribution": "number"
+          },
+          "governance_compliance": {
+            "score": "number",
+            "weighted_contribution": "number"
+          },
+          "metrics_analytics": {
+            "score": "number",
+            "weighted_contribution": "number"
+          },
+          "change_management": {
+            "score": "number",
+            "weighted_contribution": "number"
+          }
+        },
+        "assessment_date": "ISO8601"
+      }
+    },
+    {
+      "id": "maturity_trends",
+      "name": "maturity_trends.json",
+      "created_in": "TREND_ANALYSIS",
+      "updated_in": [
+        "STORE_REPORT"
+      ],
+      "optional": true,
+      "description": "Time series data showing maturity evolution over multiple assessments",
+      "schema": {
+        "assessments": [
+          {
+            "period": "string",
+            "date": "ISO8601",
+            "maturity_level": "number (1-5)",
+            "weighted_average": "number (1-5)",
+            "capabilities": {
+              "process_documentation": "number",
+              "tool_automation": "number",
+              "quality_assurance": "number",
+              "governance_compliance": "number",
+              "metrics_analytics": "number",
+              "change_management": "number"
+            }
+          }
+        ],
+        "trends": {
+          "overall_trend": "string (improving | stable | declining)",
+          "velocity": "number (change per period, e.g., +0.3 levels/quarter)",
+          "capability_trends": {
+            "process_documentation": "string (improving | stable | declining)",
+            "tool_automation": "string",
+            "quality_assurance": "string",
+            "governance_compliance": "string",
+            "metrics_analytics": "string",
+            "change_management": "string"
+          },
+          "strongest_capability": "string (capability with highest score)",
+          "weakest_capability": "string (capability with lowest score)"
+        },
+        "projections": {
+          "estimated_next_level_date": "ISO8601 (null if declining or stable)",
+          "confidence": "string (low | medium | high)",
+          "assumptions": "string (e.g., 'Assumes current velocity continues')"
+        }
+      }
+    },
+    {
+      "id": "improvement_recommendations",
+      "name": "improvement_recommendations.yaml",
+      "created_in": "GENERATE_RECOMMENDATIONS",
+      "description": "Prioritized improvement recommendations to advance maturity",
+      "schema": {
+        "current_maturity_level": "number (1-5)",
+        "target_maturity_level": "number (current + 1)",
+        "gaps": [
+          {
+            "capability": "string (e.g., 'tool_automation')",
+            "current_score": "number",
+            "target_score": "number (for next level)",
+            "gap": "number (target - current)",
+            "priority": "string (P0 | P1 | P2)",
+            "weight": "number (capability weight)"
+          }
+        ],
+        "recommendations": [
+          {
+            "priority": "string (P0 | P1 | P2)",
+            "capability": "string",
+            "action": "string (specific improvement action)",
+            "rationale": "string (why this matters)",
+            "expected_impact": "string (e.g., '+0.5 in tool_automation')",
+            "effort": "string (low | medium | high)",
+            "timeframe": "string (e.g., '1-2 months')",
+            "dependencies": [
+              "string (prerequisite actions)"
+            ]
+          }
+        ],
+        "quick_wins": [
+          "string (P0 recommendations with low effort)"
+        ],
+        "strategic_initiatives": [
+          "string (P0/P1 recommendations with high impact, may be high effort)"
+        ],
+        "estimated_timeline_to_next_level": "string (e.g., '6-9 months if P0 + P1 completed')"
+      }
+    },
+    {
+      "id": "maturity_report",
+      "name": "maturity_report_{period}.md",
+      "created_in": "STORE_REPORT",
+      "description": "Final maturity assessment report",
+      "schema": {
+        "executive_summary": "markdown",
+        "maturity_level": "number with label and description",
+        "capability_scores": "table (capability, score, weight, contribution)",
+        "trends_analysis": "markdown (if historical data exists)",
+        "gaps_analysis": "markdown (comparison with target level)",
+        "recommendations": "markdown (prioritized actions)",
+        "quick_wins": "markdown (low-effort, high-impact actions)",
+        "strategic_initiatives": "markdown (high-impact, high-effort actions)",
+        "timeline": "markdown (estimated path to next level)"
+      }
+    },
+    {
+      "id": "maturity_baseline",
+      "name": "maturity_baseline.json",
+      "created_in": "STORE_REPORT",
+      "optional": true,
+      "description": "Baseline assessment (created only on first run)",
+      "schema": {
+        "organization": "string",
+        "baseline_date": "ISO8601",
+        "maturity_level": "number",
+        "weighted_average": "number",
+        "capabilities": "object (scores for 6 capabilities)",
+        "note": "string (This is the baseline assessment for tracking progress)"
+      }
+    },
+    {
+      "id": "error_report",
+      "name": "error_report.md",
+      "created_in": "FAILED",
+      "description": "Error report if assessment failed",
+      "schema": {
+        "error_type": "string",
+        "error_message": "string",
+        "failed_phase": "string",
+        "troubleshooting_steps": "array[string]"
+      }
+    }
+  ],
+  "scheduling": {
+    "frequency": "continuous",
+    "trigger": "Scheduled (monthly/quarterly) OR manual",
+    "typical_frequency": "Quarterly assessments recommended",
+    "automation": {
+      "can_be_automated": true,
+      "automation_notes": "EVALUATE_CAPABILITIES can be automated using telemetry data (e.g., CI/CD metrics for tool_automation, test coverage for quality_assurance)"
+    }
+  },
+  "dependencies": {
+    "consumes": [
+      "maturity_trends.json (from previous runs)",
+      "maturity_baseline.json (from first run)"
+    ],
+    "produces": [
+      "maturity_level.json (consumed by methodology_evolution CONTEXT_VALIDATION)",
+      "improvement_recommendations.yaml (consumed by strategic planning)"
+    ]
+  },
+  "notes": {
+    "integration_with_methodology_evolution": "The CONTEXT_VALIDATION phase in methodology_evolution.json checks latest maturity_level.json to prevent complexity creep beyond organizational readiness",
+    "trend_analysis_minimum": "Requires at least 2 assessments to calculate trends (baseline + current)",
+    "baseline_creation": "First run creates maturity_baseline.json for all future comparisons",
+    "storage_location": "Reports stored in namespaces/meta/maturity/{organization}/{period}.md for historical tracking",
+    "capability_area_definitions": "See MATURITY_AWARE_DESIGN.md for detailed L1-L5 descriptions of each capability area"
+  }
+}

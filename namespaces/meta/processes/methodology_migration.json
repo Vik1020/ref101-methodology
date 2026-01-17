@@ -24,9 +24,24 @@
       }
     },
     {
+      "id": "TARGET_CONTEXT_ASSESSMENT",
+      "name": "Target Context Assessment",
+      "type": "Working",
+      "description": "Assess target organizational context to guide formalization level. Determines: Should migrated methodology be minimal/standard/enterprise? Prevents over-formalization (15-step Confluence → 4-state workflow for small team).",
+      "template": "CONTEXT_ASSESSMENT_TEMPLATE.md",
+      "guide": "guides/methodology_design/CONTEXT_ASSESSMENT.md",
+      "validators": ["target_context_assessed", "formalization_level_determined"],
+      "outputs": ["target_context.md", "formalization_level.yaml"],
+      "approval": {
+        "required": true,
+        "role": "process_owner",
+        "timeout": "5d"
+      }
+    },
+    {
       "id": "MAPPING",
       "type": "Working",
-      "description": "Identify hidden States, Actors, Facts from collected artifacts",
+      "description": "Identify hidden States, Actors, Facts from collected artifacts. Use formalization_level.yaml to guide complexity (simplify if target org has low maturity).",
       "validators": ["states_identified", "actors_identified", "facts_identified"],
       "outputs": ["element_mapping"],
       "approval": {
@@ -63,8 +78,74 @@
       "outputs": ["error_details"]
     }
   ],
+  "artifacts": [
+    {
+      "id": "target_context",
+      "name": "target_context.md",
+      "created_in": "TARGET_CONTEXT_ASSESSMENT",
+      "description": "Target organizational context assessment results",
+      "schema": {
+        "organization": "string",
+        "readiness_score": "number (0-100)",
+        "maturity_level": "number (1-5)",
+        "dimension_scores": {
+          "culture": "number (0-100)",
+          "tech_maturity": "number (0-100)",
+          "resources": "number (0-100)",
+          "compliance_needs": "number (0-100)",
+          "evolution_readiness": "number (0-100)"
+        },
+        "key_constraints": [
+          "string (e.g., 'Team size: 12 people', 'No AI tools available', 'Documentation habits: 2/5')"
+        ],
+        "key_enablers": [
+          "string (e.g., 'Strong collaboration culture', 'CI/CD already in place')"
+        ]
+      }
+    },
+    {
+      "id": "formalization_level",
+      "name": "formalization_level.yaml",
+      "created_in": "TARGET_CONTEXT_ASSESSMENT",
+      "description": "Formalization strategy based on target context - guides how complex the migrated methodology should be",
+      "schema": {
+        "bundle": "string (minimal | standard | enterprise)",
+        "rationale": "string (why this bundle was chosen based on assessment)",
+        "design_constraints": {
+          "max_states": "number (e.g., 5 for minimal, 8 for standard, 15 for enterprise)",
+          "max_actors": "number",
+          "max_approval_stages": "number",
+          "artifact_complexity": "string (markdown | yaml | complex_schemas)",
+          "automation_level": "string (manual | semi_automated | fully_automated)"
+        },
+        "migration_approach": {
+          "strategy": "string (simplify | preserve | enhance)",
+          "phases": [
+            "string (e.g., 'V1.0 - Minimal viable (4 states)', 'V2.0 - Add approvals (6 months)')"
+          ],
+          "simplification_tactics": [
+            "string (if strategy=simplify, e.g., 'Merge 3 approval states into 1 WAITING state', 'Skip optional BC/AC phases')"
+          ]
+        },
+        "pilot_plan": {
+          "duration": "string (e.g., '4 weeks', '8 weeks')",
+          "team_size": "string (e.g., '3-5 people')",
+          "success_criteria": [
+            "string (e.g., 'Complete 2 releases using new methodology', 'Team compliance >= 80%')"
+          ]
+        },
+        "example_scenario": "string (e.g., 'Migrating 15-step Confluence process to 12-person startup (score 38) → formalization_level: minimal, strategy: SIMPLIFY, result: 4-state workflow instead of blindly replicating 15 steps')"
+      }
+    }
+  ],
   "nodes": {
     "meta:schema-validator": "^1.0.0",
     "meta:methodology-templates": "^1.0.0"
+  },
+  "notes": {
+    "target_context_assessment_purpose": "Prevents common anti-pattern of blindly replicating complex legacy processes (15 BPMN steps) into formal methodology when target org has low maturity (score 35). Instead, simplifies to appropriate complexity (4-state workflow).",
+    "formalization_strategies": "SIMPLIFY (reduce complexity for low maturity orgs), PRESERVE (maintain complexity for similar maturity), ENHANCE (add missing governance for high maturity orgs migrating from informal processes)",
+    "example_simplification": "Legacy 15-step approval workflow → 4-state minimal workflow: INIT → WORKING → APPROVED → DEPLOYED (merge 12 approval steps into 1 WAITING state with single approver)",
+    "integration_with_mapping": "MAPPING phase consumes formalization_level.yaml to guide how granularly to map legacy process elements. Low maturity → merge similar states, high maturity → preserve granularity."
   }
 }
