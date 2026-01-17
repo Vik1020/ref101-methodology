@@ -1,0 +1,135 @@
+{
+  "process_id": "methodology_automation_opportunities",
+  "version": "1.0.0",
+  "name": "Methodology Automation Opportunities",
+  "type": "optimization",
+  "group": "OPTIMIZATION",
+  "description": "AI-powered analysis to identify automation opportunities: manual steps → automated actions, human approvals → rules, repetitive tasks → tools.",
+
+  "phases": [
+    {
+      "id": "INIT",
+      "type": "Initial",
+      "description": "Select methodology for automation analysis"
+    },
+    {
+      "id": "ANALYZE_ACTIONS",
+      "type": "Working",
+      "description": "Identify manual actions with high frequency or long duration",
+      "validators": ["actions_analyzed"]
+    },
+    {
+      "id": "ANALYZE_APPROVALS",
+      "type": "Working",
+      "description": "Identify approval steps that could be automated with Rules",
+      "validators": ["approvals_analyzed"]
+    },
+    {
+      "id": "ANALYZE_TOOLS",
+      "type": "Working",
+      "description": "Find available tools (MCP servers, APIs) that could replace manual work",
+      "validators": ["tools_analyzed"]
+    },
+    {
+      "id": "SCORE_OPPORTUNITIES",
+      "type": "Working",
+      "description": "Score by: effort to automate, impact (time saved), risk",
+      "validators": ["opportunities_scored"]
+    },
+    {
+      "id": "GENERATE_RECOMMENDATIONS",
+      "type": "Working",
+      "description": "Create ranked list of automation recommendations with ROI estimates",
+      "validators": ["recommendations_generated"]
+    },
+    {
+      "id": "COMPLETE",
+      "type": "Terminal",
+      "outputs": ["automation_recommendations.md"]
+    }
+  ],
+
+  "artifacts": [
+    {
+      "id": "automation_recommendations",
+      "name": "automation/{methodology_id}/recommendations.md",
+      "schema": {
+        "methodology_id": "string",
+        "analysis_date": "ISO8601",
+        "opportunities": [
+          {
+            "type": "manual_action | approval_step | tool_gap | repetitive_task",
+            "current_state": "string",
+            "proposed_automation": "string",
+            "score": {
+              "effort": "low | medium | high",
+              "impact": "low | medium | high",
+              "risk": "low | medium | high"
+            },
+            "roi_estimate": {
+              "time_saved_per_release": "number (hours)",
+              "automation_cost": "number (hours)",
+              "payback_period": "number (releases)"
+            },
+            "recommended_tool": "string (MCP server, API, or custom)",
+            "implementation_steps": ["string"]
+          }
+        ],
+        "priority_recommendations": ["string (top 3)"]
+      }
+    }
+  ],
+
+  "automation_patterns": {
+    "manual_to_automated": {
+      "trigger": "Human action with >5 minutes duration",
+      "solution": "Replace with AI agent or API call",
+      "examples": [
+        "Manual code review → AI code analysis",
+        "Manual testing → Automated test suite",
+        "Manual deployment → CI/CD pipeline"
+      ]
+    },
+    "approval_to_rule": {
+      "trigger": "Approval step with >80% approve rate",
+      "solution": "Replace with automated Rule check",
+      "examples": [
+        "Manager approval for small changes → Auto-approve if <100 LOC",
+        "Security review → Automated compliance check",
+        "Budget approval → Auto-approve if <$1000"
+      ]
+    },
+    "tool_integration": {
+      "trigger": "Manual data entry or external system interaction",
+      "solution": "Integrate tool via MCP or API",
+      "examples": [
+        "Manual Jira update → Jira MCP server",
+        "Manual GitHub PR → GitHub API",
+        "Manual Slack notification → Slack webhook"
+      ]
+    }
+  },
+
+  "scoring_criteria": {
+    "effort": {
+      "low": "< 1 day to implement",
+      "medium": "1-3 days to implement",
+      "high": "> 3 days to implement"
+    },
+    "impact": {
+      "low": "< 15 min saved per release",
+      "medium": "15-60 min saved per release",
+      "high": "> 60 min saved per release"
+    },
+    "risk": {
+      "low": "No breaking changes, easy rollback",
+      "medium": "Some risk, testing required",
+      "high": "Significant changes, careful migration"
+    }
+  },
+
+  "scheduling": {
+    "frequency": "semi_annual",
+    "trigger": "after bottleneck_detection OR retrospective OR on-demand"
+  }
+}

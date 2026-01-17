@@ -1,0 +1,111 @@
+{
+  "process_id": "methodology_performance_analysis",
+  "version": "1.0.0",
+  "name": "Methodology Performance Analysis",
+  "type": "analytics",
+  "group": "EFFECTIVENESS",
+  "description": "Analyze collected metrics to identify trends, bottlenecks, and improvement opportunities. Generates executive-level performance reports with actionable recommendations.",
+
+  "phases": [
+    {
+      "id": "INIT",
+      "type": "Initial",
+      "description": "Identify methodology and period for analysis",
+      "validators": ["methodology_specified", "metrics_available"]
+    },
+    {
+      "id": "LOAD_METRICS",
+      "type": "Working",
+      "description": "Load metrics from methodology_metrics_collection output",
+      "validators": ["metrics_loaded", "data_complete"],
+      "outputs": ["loaded_metrics"]
+    },
+    {
+      "id": "TREND_ANALYSIS",
+      "type": "Working",
+      "description": "Analyze trends over time: improving, stable, or degrading performance",
+      "validators": ["trends_identified"],
+      "outputs": ["trend_data"]
+    },
+    {
+      "id": "BOTTLENECK_DETECTION",
+      "type": "Working",
+      "description": "Identify which states and transitions cause the most delays",
+      "validators": ["bottlenecks_detected"],
+      "outputs": ["bottleneck_list"]
+    },
+    {
+      "id": "COMPARISON",
+      "type": "Working",
+      "description": "Compare current metrics vs target values vs previous period",
+      "validators": ["comparison_complete"],
+      "outputs": ["comparison_table"]
+    },
+    {
+      "id": "GENERATE_INSIGHTS",
+      "type": "Working",
+      "description": "Use AI to generate actionable insights and recommendations",
+      "validators": ["insights_generated"],
+      "outputs": ["insights"]
+    },
+    {
+      "id": "GENERATE_REPORT",
+      "type": "Working",
+      "description": "Create performance_report.md with executive summary and detailed findings",
+      "validators": ["report_generated"],
+      "outputs": ["performance_report.md"]
+    },
+    {
+      "id": "COMPLETE",
+      "type": "Terminal",
+      "description": "Performance analysis completed successfully",
+      "outputs": ["performance_report.md", "insights.json"]
+    },
+    {
+      "id": "FAILED",
+      "type": "Error",
+      "description": "Analysis failed due to insufficient data or processing error",
+      "outputs": ["error_report"]
+    }
+  ],
+
+  "artifacts": [
+    {
+      "id": "performance_report",
+      "name": "performance_report_{methodology_id}_{period}.md",
+      "created_in": "GENERATE_REPORT",
+      "template": "PERFORMANCE_REPORT_TEMPLATE.md",
+      "sections": [
+        "Executive Summary",
+        "Key Metrics",
+        "Trend Analysis",
+        "Bottleneck Analysis",
+        "Comparison to Targets",
+        "AI-Generated Insights",
+        "Recommendations"
+      ]
+    },
+    {
+      "id": "insights_data",
+      "name": "insights_{methodology_id}_{period}.json",
+      "created_in": "GENERATE_INSIGHTS",
+      "schema": {
+        "patterns_detected": "array",
+        "recommendations": "array",
+        "action_items": "array",
+        "predicted_improvements": "object"
+      }
+    }
+  ],
+
+  "scheduling": {
+    "frequency": "quarterly",
+    "trigger": "end of quarter OR manual request",
+    "depends_on": ["methodology_metrics_collection"]
+  },
+
+  "nodes": {
+    "meta:performance-analyzer": "^1.0.0",
+    "meta:ai-insights-generator": "^1.0.0"
+  }
+}

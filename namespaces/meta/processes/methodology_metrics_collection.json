@@ -1,0 +1,108 @@
+{
+  "process_id": "methodology_metrics_collection",
+  "version": "1.0.0",
+  "name": "Methodology Metrics Collection",
+  "type": "monitoring",
+  "group": "EFFECTIVENESS",
+  "description": "Collect Facts from running releases to calculate effectiveness metrics (Cycle Time, Error Rate, Timeout Rate, Human Intervention Rate). This process scans Entity.history to extract timestamps and analyze process performance.",
+
+  "phases": [
+    {
+      "id": "INIT",
+      "type": "Initial",
+      "description": "Select methodology and time period for metrics collection",
+      "validators": ["methodology_specified", "period_valid"]
+    },
+    {
+      "id": "DISCOVER_RELEASES",
+      "type": "Working",
+      "description": "Find all releases for selected methodology in specified period",
+      "validators": ["releases_found", "min_sample_size"],
+      "outputs": ["release_list"]
+    },
+    {
+      "id": "COLLECT_FACTS",
+      "type": "Working",
+      "description": "Extract Facts from each release: timestamps, states, actors, transitions",
+      "validators": ["facts_extracted", "facts_valid_format"],
+      "outputs": ["raw_facts"]
+    },
+    {
+      "id": "CALCULATE_METRICS",
+      "type": "Working",
+      "description": "Calculate: Cycle Time (avg, median, p90), Error Rate, Timeout Rate, Human Intervention Rate",
+      "validators": ["metrics_calculated", "metrics_within_bounds"],
+      "outputs": ["calculated_metrics"]
+    },
+    {
+      "id": "STORE_RESULTS",
+      "type": "Working",
+      "description": "Save aggregated metrics to metrics/{methodology_id}/{period}.json",
+      "validators": ["results_stored", "file_created"],
+      "outputs": ["metrics.json"]
+    },
+    {
+      "id": "COMPLETE",
+      "type": "Terminal",
+      "description": "Metrics collection completed successfully",
+      "outputs": ["metrics/{methodology_id}/{period}.json"]
+    },
+    {
+      "id": "FAILED",
+      "type": "Error",
+      "description": "Metrics collection failed (insufficient data or processing error)",
+      "outputs": ["error_report"]
+    }
+  ],
+
+  "artifacts": [
+    {
+      "id": "metrics_report",
+      "name": "metrics/{methodology_id}/{period}.json",
+      "created_in": "STORE_RESULTS",
+      "schema": {
+        "period": "string",
+        "methodology_id": "string",
+        "methodology_version": "string",
+        "total_releases": "number",
+        "cycle_time": {
+          "average": "number (days)",
+          "median": "number (days)",
+          "p90": "number (days)",
+          "p99": "number (days)",
+          "min": "number (days)",
+          "max": "number (days)"
+        },
+        "conversion_rates": {
+          "by_transition": "object",
+          "overall": "number (0-1)"
+        },
+        "error_rate": {
+          "total_errors": "number",
+          "error_rate": "number (0-1)",
+          "primary_reasons": "array[string]"
+        },
+        "timeout_rate": {
+          "total_timeouts": "number",
+          "timeout_rate": "number (0-1)",
+          "by_state": "object"
+        },
+        "human_intervention_rate": {
+          "escalations": "number",
+          "intervention_rate": "number (0-1)"
+        },
+        "collected_at": "date"
+      }
+    }
+  ],
+
+  "scheduling": {
+    "frequency": "continuous",
+    "trigger": "new Facts created OR daily aggregation at 00:00 UTC",
+    "aggregation_periods": ["daily", "weekly", "monthly", "quarterly"]
+  },
+
+  "nodes": {
+    "meta:metrics-collector": "^1.0.0"
+  }
+}

@@ -1,0 +1,117 @@
+{
+  "process_id": "methodology_approval_workflow",
+  "version": "1.0.0",
+  "name": "Methodology Approval Workflow",
+  "type": "governance",
+  "group": "GOVERNANCE",
+  "description": "Manage approval process for new methodologies or significant changes. Supports single-approver, multi-stage, and committee-based approval patterns.",
+
+  "phases": [
+    {
+      "id": "INIT",
+      "type": "Initial",
+      "description": "Submit methodology for approval"
+    },
+    {
+      "id": "PREPARE_SUBMISSION",
+      "type": "Working",
+      "description": "Prepare approval package: methodology.yaml, validation report, test results",
+      "validators": ["submission_complete"]
+    },
+    {
+      "id": "TECHNICAL_REVIEW",
+      "type": "Waiting",
+      "description": "Technical lead reviews for correctness and completeness",
+      "approval": {
+        "required": true,
+        "role": "technical_lead",
+        "timeout": "3d"
+      }
+    },
+    {
+      "id": "BUSINESS_REVIEW",
+      "type": "Waiting",
+      "description": "Business owner reviews for alignment with objectives",
+      "approval": {
+        "required": true,
+        "role": "business_owner",
+        "timeout": "3d"
+      }
+    },
+    {
+      "id": "COMMITTEE_REVIEW",
+      "type": "Waiting",
+      "description": "Architecture committee final approval (optional for complex changes)",
+      "approval": {
+        "required": false,
+        "role": "architecture_committee",
+        "quorum": "50%",
+        "timeout": "7d"
+      }
+    },
+    {
+      "id": "APPROVED",
+      "type": "Terminal",
+      "outputs": ["approval_record.json"],
+      "description": "Methodology approved for deployment"
+    },
+    {
+      "id": "REJECTED",
+      "type": "Error",
+      "description": "Approval denied - revisions required"
+    }
+  ],
+
+  "artifacts": [
+    {
+      "id": "approval_package",
+      "name": "approval_package/",
+      "contents": [
+        "methodology.yaml",
+        "validation_report.md",
+        "test_report.md",
+        "impact_assessment.md"
+      ]
+    },
+    {
+      "id": "approval_record",
+      "name": "approval_record.json",
+      "schema": {
+        "methodology_id": "string",
+        "submitted_by": "string",
+        "submitted_at": "ISO8601",
+        "approvals": [
+          {
+            "stage": "technical_review | business_review | committee_review",
+            "approver": "string",
+            "decision": "approved | rejected | conditionally_approved",
+            "timestamp": "ISO8601",
+            "comments": "string"
+          }
+        ],
+        "final_decision": "approved | rejected",
+        "approved_at": "ISO8601"
+      }
+    }
+  ],
+
+  "approval_patterns": {
+    "single_stage": {
+      "description": "One approver (e.g., tech lead only)",
+      "phases": ["TECHNICAL_REVIEW"]
+    },
+    "two_stage": {
+      "description": "Technical + Business approval",
+      "phases": ["TECHNICAL_REVIEW", "BUSINESS_REVIEW"]
+    },
+    "full_governance": {
+      "description": "All stages including committee",
+      "phases": ["TECHNICAL_REVIEW", "BUSINESS_REVIEW", "COMMITTEE_REVIEW"]
+    }
+  },
+
+  "scheduling": {
+    "frequency": "on_demand",
+    "trigger": "new methodology created OR major version change"
+  }
+}

@@ -1,0 +1,120 @@
+{
+  "process_id": "methodology_compliance_check",
+  "version": "1.0.0",
+  "name": "Methodology Compliance Check",
+  "type": "governance",
+  "group": "GOVERNANCE",
+  "description": "Automated compliance checking against policies: security, privacy, regulatory requirements. Runs as gate before deployment or periodically.",
+
+  "phases": [
+    {
+      "id": "INIT",
+      "type": "Initial",
+      "description": "Load compliance policies and methodology to check"
+    },
+    {
+      "id": "SECURITY_CHECK",
+      "type": "Working",
+      "description": "Verify: no secrets in files, RBAC configured, audit logging enabled",
+      "validators": ["security_compliant"]
+    },
+    {
+      "id": "PRIVACY_CHECK",
+      "type": "Working",
+      "description": "Verify: PII handling, data retention, consent tracking",
+      "validators": ["privacy_compliant"]
+    },
+    {
+      "id": "REGULATORY_CHECK",
+      "type": "Working",
+      "description": "Verify: SOC2, GDPR, HIPAA requirements (if applicable)",
+      "validators": ["regulatory_compliant"]
+    },
+    {
+      "id": "POLICY_CHECK",
+      "type": "Working",
+      "description": "Verify: company-specific policies (naming, approvals, documentation)",
+      "validators": ["policy_compliant"]
+    },
+    {
+      "id": "GENERATE_REPORT",
+      "type": "Working",
+      "description": "Create compliance report with pass/fail and violations",
+      "validators": ["report_generated"]
+    },
+    {
+      "id": "COMPLIANT",
+      "type": "Terminal",
+      "outputs": ["compliance_report.md"],
+      "description": "All compliance checks passed"
+    },
+    {
+      "id": "NON_COMPLIANT",
+      "type": "Error",
+      "description": "Compliance violations found - remediation required"
+    }
+  ],
+
+  "artifacts": [
+    {
+      "id": "compliance_report",
+      "name": "compliance/{methodology_id}/{date}.md",
+      "schema": {
+        "methodology_id": "string",
+        "check_date": "ISO8601",
+        "policies_checked": ["string"],
+        "results": [
+          {
+            "policy": "security | privacy | regulatory | company",
+            "requirement": "string",
+            "status": "pass | fail | not_applicable",
+            "evidence": "string",
+            "remediation": "string (if fail)"
+          }
+        ],
+        "overall_status": "compliant | non_compliant",
+        "blocking_violations": "number"
+      }
+    }
+  ],
+
+  "compliance_policies": {
+    "security": {
+      "checks": [
+        "No hardcoded secrets or API keys",
+        "RBAC configured for sensitive actions",
+        "Audit logging enabled for state transitions",
+        "Encryption for data at rest and in transit"
+      ],
+      "blocking": true
+    },
+    "privacy": {
+      "checks": [
+        "PII identified and marked",
+        "Data retention policies defined",
+        "User consent tracking implemented",
+        "Right to erasure supported"
+      ],
+      "blocking": true
+    },
+    "regulatory": {
+      "soc2": ["Access controls", "Change management", "Monitoring"],
+      "gdpr": ["Data minimization", "Purpose limitation", "Consent"],
+      "hipaa": ["PHI encryption", "Access logs", "Breach notification"]
+    },
+    "company_policy": {
+      "checks": [
+        "Naming conventions followed",
+        "Required approvals obtained",
+        "Documentation standards met",
+        "Test coverage >= 80%"
+      ],
+      "blocking": false
+    }
+  },
+
+  "scheduling": {
+    "frequency": "continuous",
+    "trigger": "before deployment (gate) OR weekly automated scan"
+  }
+}

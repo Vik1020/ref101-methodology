@@ -1,0 +1,124 @@
+{
+  "process_id": "methodology_retrospective",
+  "version": "1.0.0",
+  "name": "Methodology Retrospective",
+  "type": "learning",
+  "group": "EFFECTIVENESS",
+  "description": "Team retrospective on methodology usage: what worked, what didn't, lessons learned. Captures qualitative insights to complement quantitative metrics.",
+
+  "phases": [
+    {
+      "id": "INIT",
+      "type": "Initial",
+      "description": "Schedule retrospective and invite participants"
+    },
+    {
+      "id": "PREPARE",
+      "type": "Working",
+      "description": "Gather data: metrics, incidents, feedback, completed releases",
+      "validators": ["preparation_complete"]
+    },
+    {
+      "id": "FACILITATE_SESSION",
+      "type": "Waiting",
+      "description": "Run retrospective meeting: What went well? What didn't? What to improve?",
+      "timeout": "2h",
+      "participants": ["methodology_users", "methodology_owner"]
+    },
+    {
+      "id": "COLLECT_INSIGHTS",
+      "type": "Working",
+      "description": "Document insights, pain points, and improvement ideas",
+      "validators": ["insights_collected"]
+    },
+    {
+      "id": "PRIORITIZE_ACTIONS",
+      "type": "Working",
+      "description": "Vote on and prioritize action items for next iteration",
+      "validators": ["actions_prioritized"]
+    },
+    {
+      "id": "CREATE_PROPOSALS",
+      "type": "Working",
+      "description": "Convert top actions into improvement proposals (optional)",
+      "validators": ["proposals_created"]
+    },
+    {
+      "id": "COMPLETE",
+      "type": "Terminal",
+      "outputs": ["retrospective_notes.md"]
+    }
+  ],
+
+  "artifacts": [
+    {
+      "id": "retrospective_notes",
+      "name": "retrospectives/{methodology_id}/{date}.md",
+      "schema": {
+        "date": "ISO8601",
+        "participants": ["string"],
+        "timeframe_reviewed": "string",
+        "what_went_well": [
+          {
+            "insight": "string",
+            "votes": "number"
+          }
+        ],
+        "what_didnt_work": [
+          {
+            "pain_point": "string",
+            "impact": "high | medium | low",
+            "votes": "number"
+          }
+        ],
+        "action_items": [
+          {
+            "action": "string",
+            "priority": "P0 | P1 | P2",
+            "owner": "string",
+            "status": "todo | in_progress | done"
+          }
+        ],
+        "improvement_proposals_created": ["string"]
+      }
+    }
+  ],
+
+  "retrospective_format": {
+    "start_stop_continue": {
+      "start": "What should we start doing?",
+      "stop": "What should we stop doing?",
+      "continue": "What should we keep doing?"
+    },
+    "mad_sad_glad": {
+      "mad": "What frustrated us?",
+      "sad": "What disappointed us?",
+      "glad": "What made us happy?"
+    },
+    "sailboat": {
+      "wind": "What helped us move forward?",
+      "anchor": "What held us back?",
+      "rocks": "What risks are ahead?"
+    }
+  },
+
+  "common_insights": {
+    "positive": [
+      "State transitions are clear",
+      "Validation caught errors early",
+      "Automation reduced manual work",
+      "Documentation was helpful"
+    ],
+    "negative": [
+      "Too many approval steps",
+      "Timeout thresholds too aggressive",
+      "Unclear error messages",
+      "Missing automation for common tasks"
+    ]
+  },
+
+  "scheduling": {
+    "frequency": "quarterly",
+    "trigger": "end of quarter OR after major release OR on-demand"
+  }
+}

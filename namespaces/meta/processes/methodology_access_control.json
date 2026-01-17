@@ -1,0 +1,135 @@
+{
+  "process_id": "methodology_access_control",
+  "version": "1.0.0",
+  "name": "Methodology Access Control",
+  "type": "governance",
+  "group": "GOVERNANCE",
+  "description": "Manage RBAC (Role-Based Access Control) for methodologies: who can view, edit, approve, deploy. Integrates with identity providers.",
+
+  "phases": [
+    {
+      "id": "INIT",
+      "type": "Initial",
+      "description": "Define access control requirements"
+    },
+    {
+      "id": "DEFINE_ROLES",
+      "type": "Working",
+      "description": "Define roles: viewer, editor, approver, owner, admin",
+      "validators": ["roles_defined"]
+    },
+    {
+      "id": "DEFINE_PERMISSIONS",
+      "type": "Working",
+      "description": "Map permissions to roles: read, write, approve, deploy, delete",
+      "validators": ["permissions_defined"]
+    },
+    {
+      "id": "ASSIGN_USERS",
+      "type": "Working",
+      "description": "Assign users/teams to roles",
+      "validators": ["users_assigned"]
+    },
+    {
+      "id": "CONFIGURE_ENFORCEMENT",
+      "type": "Working",
+      "description": "Enable RBAC enforcement in methodology engine",
+      "validators": ["enforcement_configured"]
+    },
+    {
+      "id": "TEST_ACCESS",
+      "type": "Working",
+      "description": "Test: users can only perform authorized actions",
+      "validators": ["access_tested"]
+    },
+    {
+      "id": "COMPLETE",
+      "type": "Terminal",
+      "outputs": ["rbac_config.json"]
+    }
+  ],
+
+  "artifacts": [
+    {
+      "id": "rbac_config",
+      "name": "access_control/{methodology_id}/rbac.json",
+      "schema": {
+        "methodology_id": "string",
+        "roles": [
+          {
+            "role_id": "string",
+            "name": "string",
+            "permissions": ["read", "write", "approve", "deploy", "delete"]
+          }
+        ],
+        "assignments": [
+          {
+            "principal": "user:email | team:name | service:name",
+            "role": "string"
+          }
+        ],
+        "enforcement": {
+          "enabled": "boolean",
+          "audit_logging": "boolean",
+          "mfa_required": "boolean"
+        }
+      }
+    }
+  ],
+
+  "default_roles": {
+    "viewer": {
+      "description": "Can view methodology and releases",
+      "permissions": ["read"]
+    },
+    "editor": {
+      "description": "Can edit methodology and create releases",
+      "permissions": ["read", "write"]
+    },
+    "approver": {
+      "description": "Can approve changes and releases",
+      "permissions": ["read", "approve"]
+    },
+    "owner": {
+      "description": "Full control including deployment",
+      "permissions": ["read", "write", "approve", "deploy"]
+    },
+    "admin": {
+      "description": "Full control including deletion and RBAC changes",
+      "permissions": ["read", "write", "approve", "deploy", "delete", "manage_rbac"]
+    }
+  },
+
+  "permission_scope": {
+    "read": {
+      "actions": ["View methodology.yaml", "View releases", "View metrics"]
+    },
+    "write": {
+      "actions": ["Edit methodology.yaml", "Create releases", "Update artifacts"]
+    },
+    "approve": {
+      "actions": ["Approve changes", "Approve releases", "Sign off on deployments"]
+    },
+    "deploy": {
+      "actions": ["Deploy to production", "Trigger migrations", "Update live systems"]
+    },
+    "delete": {
+      "actions": ["Delete methodology", "Delete releases", "Archive namespaces"]
+    },
+    "manage_rbac": {
+      "actions": ["Modify roles", "Assign users", "Change permissions"]
+    }
+  },
+
+  "enforcement_points": {
+    "methodology_edit": "Check write permission before allowing edits",
+    "release_create": "Check write permission before creating release",
+    "approval_required": "Check approve permission for approval actions",
+    "deployment": "Check deploy permission before production deployment"
+  },
+
+  "scheduling": {
+    "frequency": "on_demand",
+    "trigger": "methodology creation OR access policy change OR security review"
+  }
+}

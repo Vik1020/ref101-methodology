@@ -1,0 +1,117 @@
+{
+  "process_id": "methodology_bottleneck_detection",
+  "version": "1.0.0",
+  "name": "Methodology Bottleneck Detection",
+  "type": "optimization",
+  "group": "OPTIMIZATION",
+  "description": "Analyze methodology performance metrics to identify bottlenecks: slow states, frequent timeouts, high human intervention rates. Uses statistical analysis and anomaly detection.",
+
+  "phases": [
+    {
+      "id": "INIT",
+      "type": "Initial",
+      "description": "Select methodology and time period for analysis"
+    },
+    {
+      "id": "LOAD_METRICS",
+      "type": "Working",
+      "description": "Load metrics from methodology_metrics_collection output",
+      "validators": ["metrics_loaded"]
+    },
+    {
+      "id": "ANALYZE_STATE_DURATION",
+      "type": "Working",
+      "description": "Identify states with abnormally high average duration (p90 > threshold)",
+      "validators": ["state_analysis_complete"]
+    },
+    {
+      "id": "ANALYZE_TIMEOUT_RATE",
+      "type": "Working",
+      "description": "Identify states with high timeout rates (> 10%)",
+      "validators": ["timeout_analysis_complete"]
+    },
+    {
+      "id": "ANALYZE_HUMAN_INTERVENTION",
+      "type": "Working",
+      "description": "Identify states requiring excessive human intervention (> 50%)",
+      "validators": ["intervention_analysis_complete"]
+    },
+    {
+      "id": "RANK_BOTTLENECKS",
+      "type": "Working",
+      "description": "Rank bottlenecks by impact (duration × frequency) and severity",
+      "validators": ["bottlenecks_ranked"]
+    },
+    {
+      "id": "GENERATE_REPORT",
+      "type": "Working",
+      "description": "Generate bottleneck report with recommended actions",
+      "validators": ["report_generated"]
+    },
+    {
+      "id": "COMPLETE",
+      "type": "Terminal",
+      "outputs": ["bottleneck_report.md"]
+    }
+  ],
+
+  "artifacts": [
+    {
+      "id": "bottleneck_report",
+      "name": "bottleneck_report.md",
+      "schema": {
+        "methodology_id": "string",
+        "analysis_period": "string",
+        "bottlenecks": [
+          {
+            "type": "slow_state | timeout | human_intervention",
+            "state_id": "string",
+            "severity": "critical | high | medium | low",
+            "impact": "number",
+            "metrics": {
+              "avg_duration": "number",
+              "p90_duration": "number",
+              "timeout_rate": "number",
+              "human_intervention_rate": "number"
+            },
+            "recommended_actions": ["string"]
+          }
+        ],
+        "overall_health": "healthy | needs_attention | critical"
+      }
+    }
+  ],
+
+  "thresholds": {
+    "slow_state_p90": "2x median state duration",
+    "high_timeout_rate": "10%",
+    "high_human_intervention": "50%",
+    "critical_impact": "affects >30% of releases"
+  },
+
+  "recommended_actions": {
+    "slow_state": [
+      "Add automation to reduce manual steps",
+      "Optimize external API calls",
+      "Add caching for repeated operations",
+      "Parallelize independent sub-tasks"
+    ],
+    "high_timeout": [
+      "Increase timeout threshold if legitimate",
+      "Add retry logic with exponential backoff",
+      "Investigate root cause of delays",
+      "Add monitoring and alerts"
+    ],
+    "high_human_intervention": [
+      "Automate decision-making with Rules",
+      "Add AI agent for common cases",
+      "Improve error messages for self-service",
+      "Add approval workflows for edge cases only"
+    ]
+  },
+
+  "scheduling": {
+    "frequency": "monthly",
+    "trigger": "after methodology_performance_analysis OR on-demand"
+  }
+}

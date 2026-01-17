@@ -1,0 +1,106 @@
+{
+  "process_id": "methodology_audit",
+  "version": "1.0.0",
+  "name": "Methodology Audit",
+  "type": "compliance",
+  "group": "QA",
+  "description": "Periodic audit of methodology usage, compliance, and governance. Verifies adherence to standards, identifies unauthorized modifications, checks approval records.",
+
+  "phases": [
+    {
+      "id": "INIT",
+      "type": "Initial",
+      "description": "Schedule audit and define scope"
+    },
+    {
+      "id": "COLLECT_EVIDENCE",
+      "type": "Working",
+      "description": "Gather: methodology files, approval records, change history, release data",
+      "validators": ["evidence_collected"]
+    },
+    {
+      "id": "VERIFY_COMPLIANCE",
+      "type": "Working",
+      "description": "Check: approved changes only, no schema violations, required artifacts present",
+      "validators": ["compliance_verified"]
+    },
+    {
+      "id": "CHECK_GOVERNANCE",
+      "type": "Working",
+      "description": "Verify: approval workflows followed, access controls enforced, audit trail complete",
+      "validators": ["governance_checked"]
+    },
+    {
+      "id": "IDENTIFY_VIOLATIONS",
+      "type": "Working",
+      "description": "Document any violations or gaps in compliance",
+      "validators": ["violations_identified"]
+    },
+    {
+      "id": "GENERATE_REPORT",
+      "type": "Working",
+      "description": "Create audit report with findings and recommendations",
+      "validators": ["report_generated"]
+    },
+    {
+      "id": "COMPLETE",
+      "type": "Terminal",
+      "outputs": ["audit_report.md"],
+      "success_criteria": {
+        "violations": 0,
+        "compliance_score": ">= 95%"
+      }
+    }
+  ],
+
+  "artifacts": [
+    {
+      "id": "audit_report",
+      "name": "audits/{methodology_id}/{audit_date}.md",
+      "schema": {
+        "audit_id": "string",
+        "methodology_id": "string",
+        "audit_date": "ISO8601",
+        "auditor": "string",
+        "scope": "string",
+        "findings": [
+          {
+            "category": "compliance | governance | quality",
+            "severity": "critical | high | medium | low",
+            "description": "string",
+            "evidence": "string",
+            "recommendation": "string"
+          }
+        ],
+        "compliance_score": "number (0-100)",
+        "overall_status": "compliant | needs_remediation | critical"
+      }
+    }
+  ],
+
+  "audit_checks": {
+    "compliance": [
+      "All changes have approval records",
+      "No schema violations in methodology.yaml",
+      "Required artifacts present (validation_report, test_report)",
+      "Version numbers follow semver"
+    ],
+    "governance": [
+      "Approval workflows followed per policy",
+      "Access controls properly configured",
+      "Change history audit trail complete",
+      "Deprecated methodologies properly archived"
+    ],
+    "quality": [
+      "Validation passing (L1, L2, L3)",
+      "Test coverage >= 80%",
+      "Documentation up to date",
+      "No known critical bugs"
+    ]
+  },
+
+  "scheduling": {
+    "frequency": "quarterly",
+    "trigger": "scheduled OR on-demand (compliance review, security incident)"
+  }
+}

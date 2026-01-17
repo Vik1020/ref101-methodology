@@ -4,6 +4,8 @@
 .mcp.json
 .claude/skills/
 processes/
+# Exception: keep methodology processes in version control
+!namespaces/*/processes/
 
 # PCC workflow state
 .pcc/

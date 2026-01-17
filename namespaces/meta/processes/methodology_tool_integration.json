@@ -1,0 +1,127 @@
+{
+  "process_id": "methodology_tool_integration",
+  "version": "1.0.0",
+  "name": "Methodology Tool Integration",
+  "type": "integration",
+  "group": "INTEGRATION",
+  "description": "Integrate external tools (MCP servers, APIs, CLI tools) with methodologies. Enables methodologies to trigger external systems and consume external data.",
+
+  "phases": [
+    {
+      "id": "INIT",
+      "type": "Initial",
+      "description": "Define tool integration requirements"
+    },
+    {
+      "id": "DISCOVER_TOOLS",
+      "type": "Working",
+      "description": "Identify available tools: MCP servers, APIs, CLI utilities",
+      "validators": ["tools_discovered"]
+    },
+    {
+      "id": "MAP_CAPABILITIES",
+      "type": "Working",
+      "description": "Map tool capabilities to methodology Actions and States",
+      "validators": ["mapping_complete"]
+    },
+    {
+      "id": "IMPLEMENT_ADAPTERS",
+      "type": "Working",
+      "description": "Create adapters/connectors for each tool integration",
+      "validators": ["adapters_implemented"]
+    },
+    {
+      "id": "TEST_INTEGRATION",
+      "type": "Working",
+      "description": "Test end-to-end integration: trigger tool, handle response, error handling",
+      "validators": ["integration_tested"]
+    },
+    {
+      "id": "DOCUMENT",
+      "type": "Working",
+      "description": "Document integration: setup, configuration, usage examples",
+      "validators": ["documentation_complete"]
+    },
+    {
+      "id": "COMPLETE",
+      "type": "Terminal",
+      "outputs": ["integration_config.json", "integration_docs.md"]
+    },
+    {
+      "id": "FAILED",
+      "type": "Error",
+      "description": "Integration failed - incompatible tool or connection error"
+    }
+  ],
+
+  "artifacts": [
+    {
+      "id": "integration_config",
+      "name": "integrations/{methodology_id}/{tool_id}.json",
+      "schema": {
+        "tool_id": "string",
+        "tool_type": "mcp_server | api | cli",
+        "connection": {
+          "endpoint": "string",
+          "authentication": "api_key | oauth | none",
+          "timeout": "number"
+        },
+        "mappings": [
+          {
+            "action_id": "string",
+            "tool_operation": "string",
+            "input_mapping": "object",
+            "output_mapping": "object"
+          }
+        ],
+        "error_handling": {
+          "retry": { "max": "number", "delay": "exponential | fixed" },
+          "fallback": "string (action to take on failure)"
+        }
+      }
+    },
+    {
+      "id": "integration_docs",
+      "name": "integrations/{methodology_id}/README.md",
+      "template": "INTEGRATION_DOCS_TEMPLATE.md"
+    }
+  ],
+
+  "tool_types": {
+    "mcp_server": {
+      "description": "Model Context Protocol server (e.g., pcc, ide, filesystem)",
+      "discovery": "MCP manifest.json",
+      "invocation": "MCP tool call"
+    },
+    "api": {
+      "description": "REST/GraphQL API",
+      "discovery": "OpenAPI spec or manual",
+      "invocation": "HTTP request"
+    },
+    "cli": {
+      "description": "Command-line tool",
+      "discovery": "--help output",
+      "invocation": "subprocess.run()"
+    }
+  },
+
+  "integration_patterns": {
+    "action_trigger": {
+      "description": "Methodology Action triggers external tool",
+      "example": "create_artifact Action → calls GitHub API to create PR"
+    },
+    "data_sync": {
+      "description": "Methodology consumes external data",
+      "example": "Load metrics from external observability platform"
+    },
+    "event_listener": {
+      "description": "External tool triggers methodology transition",
+      "example": "GitHub webhook triggers release_deployed Fact"
+    }
+  },
+
+  "scheduling": {
+    "frequency": "on_demand",
+    "trigger": "new tool available OR methodology needs external capability"
+  }
+}

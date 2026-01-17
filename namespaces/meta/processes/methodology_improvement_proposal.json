@@ -1,0 +1,131 @@
+{
+  "process_id": "methodology_improvement_proposal",
+  "version": "1.0.0",
+  "name": "Methodology Improvement Proposal",
+  "type": "optimization",
+  "group": "OPTIMIZATION",
+  "description": "Create and track improvement proposals for methodologies based on bottleneck analysis, retrospectives, or new insights. Follows RFC-style proposal process.",
+
+  "phases": [
+    {
+      "id": "INIT",
+      "type": "Initial",
+      "description": "Create new improvement proposal"
+    },
+    {
+      "id": "DRAFT_PROPOSAL",
+      "type": "Working",
+      "description": "Write proposal: problem, solution, impact, implementation plan",
+      "validators": ["proposal_complete"]
+    },
+    {
+      "id": "COMMUNITY_REVIEW",
+      "type": "Waiting",
+      "description": "Gather feedback from stakeholders (optional public comment period)",
+      "timeout": "7d"
+    },
+    {
+      "id": "IMPACT_ASSESSMENT",
+      "type": "Working",
+      "description": "Assess impact: breaking changes, migration effort, risk",
+      "validators": ["impact_assessed"]
+    },
+    {
+      "id": "DECISION",
+      "type": "Waiting",
+      "description": "Approve or reject proposal",
+      "approval": {
+        "required": true,
+        "role": "methodology_owner"
+      }
+    },
+    {
+      "id": "APPROVED",
+      "type": "Working",
+      "description": "Proposal approved - schedule implementation",
+      "validators": ["implementation_scheduled"]
+    },
+    {
+      "id": "IMPLEMENTED",
+      "type": "Terminal",
+      "outputs": ["proposal.md", "implementation_record.json"],
+      "description": "Improvement implemented and deployed"
+    },
+    {
+      "id": "REJECTED",
+      "type": "Terminal",
+      "description": "Proposal rejected with documented rationale"
+    }
+  ],
+
+  "artifacts": [
+    {
+      "id": "proposal",
+      "name": "proposals/{proposal_id}.md",
+      "template": "IMPROVEMENT_PROPOSAL_TEMPLATE.md",
+      "schema": {
+        "proposal_id": "string",
+        "title": "string",
+        "author": "string",
+        "created_at": "ISO8601",
+        "status": "draft | review | approved | rejected | implemented",
+        "problem": "string (what bottleneck/issue this addresses)",
+        "solution": "string (proposed changes to methodology)",
+        "impact": {
+          "performance_improvement": "string (expected % improvement)",
+          "breaking_changes": "boolean",
+          "migration_required": "boolean",
+          "affected_releases": "number (estimate)"
+        },
+        "implementation_plan": {
+          "steps": ["string"],
+          "estimated_effort": "string",
+          "rollout_strategy": "string"
+        },
+        "alternatives_considered": ["string"],
+        "decision_rationale": "string"
+      }
+    },
+    {
+      "id": "implementation_record",
+      "name": "implementation_record.json",
+      "schema": {
+        "proposal_id": "string",
+        "implemented_at": "ISO8601",
+        "implemented_by": "string",
+        "actual_effort": "string",
+        "results": {
+          "performance_before": "object",
+          "performance_after": "object",
+          "improvement": "string"
+        }
+      }
+    }
+  ],
+
+  "proposal_categories": {
+    "performance": "Improve cycle time, reduce timeouts",
+    "quality": "Reduce error rates, improve validation",
+    "usability": "Reduce human intervention, improve clarity",
+    "architecture": "Add new capabilities, refactor structure"
+  },
+
+  "approval_criteria": {
+    "must_have": [
+      "Clear problem statement with data",
+      "Measurable success criteria",
+      "Implementation plan with steps",
+      "Risk assessment and mitigation"
+    ],
+    "should_have": [
+      "Impact assessment with metrics",
+      "Alternatives considered",
+      "Migration plan if breaking"
+    ]
+  },
+
+  "scheduling": {
+    "frequency": "on_demand",
+    "trigger": "after bottleneck_detection OR retrospective OR ad-hoc insight"
+  }
+}

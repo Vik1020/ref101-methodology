@@ -137,7 +137,6 @@ actors:
     tools:
       - "yaml_editor"
     permissions:
-      - "define_elements"
       - "fix_errors"
 
   - id: "claude_agent"
@@ -148,7 +147,6 @@ actors:
       - "yaml_editor"
     permissions:
       - "validate_methodology"
-      - "define_elements"
 
 # === TOOLS (Instruments for Actions) ===
 tools:
@@ -276,7 +274,7 @@ artifacts:
     name: "methodology.yaml"
     type: "yaml"
     template: "templates/methodology_template.yaml"
-    created_by: "define_elements"
+    created_by: "define_basics"
     entity_id: "methodology"
 
   - id: "validation_report"
@@ -416,11 +414,152 @@ phase_defaults:
 
 # === PROCESSES (References to processes/*.json) ===
 processes:
+  # EXISTING - LIFECYCLE GROUP
   - id: "methodology_creation"
     definition_file: "processes/methodology_creation.json"
-  - id: "methodology_validation"
-    definition_file: "processes/methodology_validation.json"
+    group: "LIFECYCLE"
   - id: "methodology_migration"
     definition_file: "processes/methodology_migration.json"
+    group: "LIFECYCLE"
   - id: "methodology_evolution"
     definition_file: "processes/methodology_evolution.json"
+    group: "LIFECYCLE"
+
+  # EXISTING - QA GROUP
+  - id: "methodology_validation"
+    definition_file: "processes/methodology_validation.json"
+    group: "QA"
+
+  # NEW - LIFECYCLE GROUP
+  - id: "methodology_deprecation"
+    definition_file: "processes/methodology_deprecation.json"
+    group: "LIFECYCLE"
+
+  # NEW - QA GROUP
+  - id: "methodology_testing"
+    definition_file: "processes/methodology_testing.json"
+    group: "QA"
+  - id: "methodology_audit"
+    definition_file: "processes/methodology_audit.json"
+    group: "QA"
+
+  # NEW - EFFECTIVENESS GROUP
+  - id: "methodology_metrics_collection"
+    definition_file: "processes/methodology_metrics_collection.json"
+    group: "EFFECTIVENESS"
+  - id: "methodology_performance_analysis"
+    definition_file: "processes/methodology_performance_analysis.json"
+    group: "EFFECTIVENESS"
+  - id: "methodology_roi_calculation"
+    definition_file: "processes/methodology_roi_calculation.json"
+    group: "EFFECTIVENESS"
+  - id: "methodology_retrospective"
+    definition_file: "processes/methodology_retrospective.json"
+    group: "EFFECTIVENESS"
+
+  # NEW - GOVERNANCE GROUP
+  - id: "methodology_approval_workflow"
+    definition_file: "processes/methodology_approval_workflow.json"
+    group: "GOVERNANCE"
+  - id: "methodology_compliance_check"
+    definition_file: "processes/methodology_compliance_check.json"
+    group: "GOVERNANCE"
+  - id: "methodology_access_control"
+    definition_file: "processes/methodology_access_control.json"
+    group: "GOVERNANCE"
+
+  # NEW - OPTIMIZATION GROUP
+  - id: "methodology_bottleneck_detection"
+    definition_file: "processes/methodology_bottleneck_detection.json"
+    group: "OPTIMIZATION"
+  - id: "methodology_improvement_proposal"
+    definition_file: "processes/methodology_improvement_proposal.json"
+    group: "OPTIMIZATION"
+  - id: "methodology_automation_opportunities"
+    definition_file: "processes/methodology_automation_opportunities.json"
+    group: "OPTIMIZATION"
+
+  # NEW - INTEGRATION GROUP
+  - id: "methodology_tool_integration"
+    definition_file: "processes/methodology_tool_integration.json"
+    group: "INTEGRATION"
+  - id: "methodology_cross_reference"
+    definition_file: "processes/methodology_cross_reference.json"
+    group: "INTEGRATION"
+
+  # NEW - MANAGEMENT GROUP
+  - id: "methodology_governance_master"
+    definition_file: "processes/methodology_governance_master.json"
+    group: "MANAGEMENT"
+
+# === PROCESS GROUPS ===
+process_groups:
+  - id: "LIFECYCLE"
+    name: "Lifecycle Management"
+    description: "Create, migrate, evolve, and deprecate methodologies"
+    owner_role: "Methodology Architect"
+    processes: ["methodology_creation", "methodology_migration", "methodology_evolution", "methodology_deprecation"]
+    priority_by_context:
+      startup: "P0"
+      enterprise: "P1"
+      scaleup: "P1"
+
+  - id: "QA"
+    name: "Quality Assurance"
+    description: "Validate, test, and audit methodologies for correctness and completeness"
+    owner_role: "Quality Assurance Lead"
+    processes: ["methodology_validation", "methodology_testing", "methodology_audit"]
+    priority_by_context:
+      startup: "P1"
+      enterprise: "P0"
+      scaleup: "P1"
+
+  - id: "EFFECTIVENESS"
+    name: "Effectiveness Measurement"
+    description: "Collect metrics, analyze performance, calculate ROI of methodologies"
+    owner_role: "Analytics Team"
+    processes: ["methodology_metrics_collection", "methodology_performance_analysis", "methodology_roi_calculation", "methodology_retrospective"]
+    priority_by_context:
+      startup: "P2"
+      enterprise: "P1"
+      scaleup: "P0"
+
+  - id: "GOVERNANCE"
+    name: "Governance & Control"
+    description: "Manage approvals, enforce compliance, control access to methodologies"
+    owner_role: "Process Owner"
+    processes: ["methodology_approval_workflow", "methodology_compliance_check", "methodology_access_control"]
+    priority_by_context:
+      startup: "P3"
+      enterprise: "P0"
+      scaleup: "P1"
+
+  - id: "OPTIMIZATION"
+    name: "Optimization & Improvement"
+    description: "Detect bottlenecks, propose improvements, identify automation opportunities"
+    owner_role: "AI/ML Team"
+    processes: ["methodology_bottleneck_detection", "methodology_improvement_proposal", "methodology_automation_opportunities"]
+    priority_by_context:
+      startup: "P3"
+      enterprise: "P2"
+      scaleup: "P0"
+
+  - id: "INTEGRATION"
+    name: "Integration & Connectivity"
+    description: "Connect external tools, cross-reference methodologies, manage APIs"
+    owner_role: "Platform Engineering"
+    processes: ["methodology_tool_integration", "methodology_cross_reference"]
+    priority_by_context:
+      startup: "P2"
+      enterprise: "P1"
+      scaleup: "P1"
+
+  - id: "MANAGEMENT"
+    name: "Group Management"
+    description: "Orchestrate all process groups, manage dependencies and scheduling"
+    owner_role: "Chief Methodology Officer"
+    processes: ["methodology_governance_master"]
+    priority_by_context:
+      startup: "P1"
+      enterprise: "P0"
+      scaleup: "P0"

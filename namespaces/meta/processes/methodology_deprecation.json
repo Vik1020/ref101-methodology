@@ -1,0 +1,153 @@
+{
+  "process_id": "methodology_deprecation",
+  "version": "1.0.0",
+  "name": "Methodology Deprecation",
+  "type": "sunset",
+  "group": "LIFECYCLE",
+  "description": "Controlled deprecation and archival of methodologies no longer in use. Ensures all active releases complete or migrate to new methodology before archival.",
+
+  "phases": [
+    {
+      "id": "INIT",
+      "type": "Initial",
+      "description": "Identify methodology to deprecate and replacement (if any)",
+      "validators": ["methodology_exists", "not_currently_deprecated"]
+    },
+    {
+      "id": "IMPACT_ANALYSIS",
+      "type": "Working",
+      "description": "Analyze impact: count active releases, dependent methodologies, integrations",
+      "validators": ["impact_assessed"],
+      "outputs": ["impact_report"]
+    },
+    {
+      "id": "DEPRECATION_NOTICE",
+      "type": "Working",
+      "description": "Announce deprecation with timeline and migration path",
+      "approval": {
+        "required": true,
+        "role": "methodology_owner",
+        "context": ["impact_report", "migration_plan_draft"]
+      },
+      "outputs": ["deprecation_announcement"]
+    },
+    {
+      "id": "MIGRATION_PLAN",
+      "type": "Working",
+      "description": "Create detailed plan for migrating active releases to replacement methodology",
+      "validators": ["migration_plan_created", "replacement_methodology_valid"],
+      "outputs": ["migration_plan.md"]
+    },
+    {
+      "id": "NOTIFY_STAKEHOLDERS",
+      "type": "Working",
+      "description": "Notify all users, owners of active releases, and dependent systems",
+      "validators": ["notifications_sent"],
+      "outputs": ["notification_log"]
+    },
+    {
+      "id": "GRACE_PERIOD",
+      "type": "Waiting",
+      "description": "Wait for all active releases to complete or migrate (default 90 days)",
+      "timeout": "90d",
+      "validators": ["grace_period_started"],
+      "on_timeout": {
+        "action": "force_migration",
+        "target_state": "FORCE_ARCHIVE"
+      }
+    },
+    {
+      "id": "VERIFY_MIGRATION",
+      "type": "Working",
+      "description": "Verify all active releases have completed or migrated successfully",
+      "validators": ["no_active_releases", "all_migrated"],
+      "on_failure": "GRACE_PERIOD_EXTENSION"
+    },
+    {
+      "id": "GRACE_PERIOD_EXTENSION",
+      "type": "Waiting",
+      "description": "Extended grace period for remaining releases (30 days)",
+      "timeout": "30d",
+      "approval": {
+        "required": true,
+        "role": "methodology_owner"
+      },
+      "on_timeout": {
+        "action": "force_archive",
+        "target_state": "FORCE_ARCHIVE"
+      }
+    },
+    {
+      "id": "ARCHIVE",
+      "type": "Working",
+      "description": "Move methodology to archived/ directory and mark as deprecated",
+      "validators": ["archived_successfully"],
+      "outputs": ["archived/{methodology_id}/"]
+    },
+    {
+      "id": "FORCE_ARCHIVE",
+      "type": "Working",
+      "description": "Force archive after extended grace period with warnings",
+      "approval": {
+        "required": true,
+        "role": "chief_methodology_officer"
+      },
+      "outputs": ["archived/{methodology_id}/", "force_archive_report"]
+    },
+    {
+      "id": "UPDATE_REFERENCES",
+      "type": "Working",
+      "description": "Update all cross-references, documentation, and integration configs",
+      "validators": ["references_updated"],
+      "outputs": ["reference_update_log"]
+    },
+    {
+      "id": "COMPLETE",
+      "type": "Terminal",
+      "description": "Methodology successfully deprecated and archived",
+      "outputs": ["archived/{methodology_id}/", "deprecation_summary.md"]
+    },
+    {
+      "id": "CANCELLED",
+      "type": "Terminal",
+      "description": "Deprecation cancelled by methodology owner",
+      "outputs": ["cancellation_reason"]
+    }
+  ],
+
+  "artifacts": [
+    {
+      "id": "impact_report",
+      "name": "impact_report_{methodology_id}.md",
+      "created_in": "IMPACT_ANALYSIS",
+      "sections": [
+        "Active Releases Count",
+        "Dependent Methodologies",
+        "Integration Points",
+        "Estimated Migration Effort"
+      ]
+    },
+    {
+      "id": "migration_plan",
+      "name": "migration_plan_{methodology_id}.md",
+      "created_in": "MIGRATION_PLAN",
+      "template": "MIGRATION_PLAN_TEMPLATE.md"
+    },
+    {
+      "id": "deprecation_summary",
+      "name": "deprecation_summary_{methodology_id}.md",
+      "created_in": "COMPLETE",
+      "schema": {
+        "deprecated_at": "date",
+        "archived_at": "date",
+        "active_releases_migrated": "number",
+        "forced_migrations": "number",
+        "replacement_methodology": "string (nullable)"
+      }
+    }
+  ],
+
+  "nodes": {
+    "meta:deprecation-manager": "^1.0.0"
+  }
+}

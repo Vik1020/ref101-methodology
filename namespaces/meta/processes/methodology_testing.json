@@ -1,0 +1,107 @@
+{
+  "process_id": "methodology_testing",
+  "version": "1.0.0",
+  "name": "Methodology Testing",
+  "type": "quality_assurance",
+  "group": "QA",
+  "description": "Execute test scenarios against a methodology to verify it handles happy paths, error paths, edge cases, and state transitions correctly. Goes beyond static validation to runtime testing.",
+
+  "phases": [
+    {
+      "id": "INIT",
+      "type": "Initial",
+      "description": "Select methodology and prepare test environment"
+    },
+    {
+      "id": "DESIGN_TESTS",
+      "type": "Working",
+      "description": "Design test cases: happy path, error path, edge cases, state transitions",
+      "validators": ["test_cases_designed"]
+    },
+    {
+      "id": "EXECUTE_HAPPY_PATH",
+      "type": "Working",
+      "description": "Run happy path scenario from Initial to Terminal state",
+      "validators": ["happy_path_passed"]
+    },
+    {
+      "id": "EXECUTE_ERROR_PATH",
+      "type": "Working",
+      "description": "Run error scenarios to verify error handling and recovery paths",
+      "validators": ["error_path_passed"]
+    },
+    {
+      "id": "EXECUTE_EDGE_CASES",
+      "type": "Working",
+      "description": "Test timeouts, retries, compensation, guards, complex Rules",
+      "validators": ["edge_cases_passed"]
+    },
+    {
+      "id": "GENERATE_REPORT",
+      "type": "Working",
+      "description": "Generate test report with pass/fail results and coverage metrics",
+      "validators": ["report_generated"]
+    },
+    {
+      "id": "COMPLETE",
+      "type": "Terminal",
+      "outputs": ["test_report.md"],
+      "success_criteria": {
+        "happy_path": "passed",
+        "error_path": "passed",
+        "edge_cases": "passed"
+      }
+    },
+    {
+      "id": "FAILED",
+      "type": "Error",
+      "description": "Testing failed - bugs found in methodology"
+    }
+  ],
+
+  "artifacts": [
+    {
+      "id": "test_report",
+      "name": "test_report.md",
+      "schema": {
+        "methodology_id": "string",
+        "test_date": "ISO8601",
+        "test_cases": [
+          {
+            "name": "string",
+            "type": "happy_path | error_path | edge_case",
+            "status": "passed | failed",
+            "details": "string"
+          }
+        ],
+        "coverage": {
+          "states_tested": "number",
+          "total_states": "number",
+          "transitions_tested": "number",
+          "total_transitions": "number"
+        },
+        "overall_status": "passed | failed"
+      }
+    }
+  ],
+
+  "test_categories": {
+    "happy_path": {
+      "description": "Complete flow from Initial to Terminal state with no errors",
+      "minimum_scenarios": 1
+    },
+    "error_path": {
+      "description": "Scenarios triggering error states and recovery paths",
+      "minimum_scenarios": 2
+    },
+    "edge_cases": {
+      "description": "Timeouts, retries, guards, compensation, boundary conditions",
+      "minimum_scenarios": 3
+    }
+  },
+
+  "scheduling": {
+    "frequency": "on_demand",
+    "trigger": "before methodology release OR after significant changes"
+  }
+}

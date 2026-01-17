@@ -1,0 +1,153 @@
+{
+  "process_id": "methodology_cross_reference",
+  "version": "1.0.0",
+  "name": "Methodology Cross-Reference",
+  "type": "integration",
+  "group": "INTEGRATION",
+  "description": "Link and coordinate multiple methodologies: composition patterns, shared entities, cross-methodology workflows, dependency management.",
+
+  "phases": [
+    {
+      "id": "INIT",
+      "type": "Initial",
+      "description": "Identify methodologies to cross-reference"
+    },
+    {
+      "id": "ANALYZE_ENTITIES",
+      "type": "Working",
+      "description": "Find shared entities and overlapping domains",
+      "validators": ["entities_analyzed"]
+    },
+    {
+      "id": "IDENTIFY_DEPENDENCIES",
+      "type": "Working",
+      "description": "Map dependencies: which methodologies depend on others",
+      "validators": ["dependencies_identified"]
+    },
+    {
+      "id": "DESIGN_INTEGRATION",
+      "type": "Working",
+      "description": "Design integration pattern: composition, orchestration, or saga",
+      "validators": ["integration_designed"]
+    },
+    {
+      "id": "IMPLEMENT_LINKS",
+      "type": "Working",
+      "description": "Add cross-references: Facts trigger external methodology, shared artifacts",
+      "validators": ["links_implemented"]
+    },
+    {
+      "id": "TEST_COORDINATION",
+      "type": "Working",
+      "description": "Test end-to-end workflow across methodologies",
+      "validators": ["coordination_tested"]
+    },
+    {
+      "id": "COMPLETE",
+      "type": "Terminal",
+      "outputs": ["cross_reference_map.json", "integration_docs.md"]
+    }
+  ],
+
+  "artifacts": [
+    {
+      "id": "cross_reference_map",
+      "name": "integrations/cross_reference_map.json",
+      "schema": {
+        "methodologies": [
+          {
+            "methodology_id": "string",
+            "version": "string",
+            "role": "parent | child | peer"
+          }
+        ],
+        "shared_entities": [
+          {
+            "entity_type": "string",
+            "owner_methodology": "string",
+            "shared_with": ["string"]
+          }
+        ],
+        "dependencies": [
+          {
+            "source": "string",
+            "target": "string",
+            "type": "requires | triggers | extends"
+          }
+        ],
+        "integration_points": [
+          {
+            "methodology_a": "string",
+            "methodology_b": "string",
+            "integration_type": "composition | orchestration | saga",
+            "trigger": "string (Fact or State)",
+            "action": "string"
+          }
+        ]
+      }
+    },
+    {
+      "id": "integration_docs",
+      "name": "integrations/README.md",
+      "template": "CROSS_REFERENCE_DOCS_TEMPLATE.md"
+    }
+  ],
+
+  "integration_patterns": {
+    "composition": {
+      "description": "One methodology embeds another as a sub-process",
+      "example": "Feature methodology includes QA methodology as testing phase",
+      "coordination": "Parent controls child lifecycle"
+    },
+    "orchestration": {
+      "description": "One methodology coordinates multiple others",
+      "example": "Release methodology orchestrates build, test, deploy methodologies",
+      "coordination": "Orchestrator sends commands to workers"
+    },
+    "saga": {
+      "description": "Long-running transaction across methodologies with compensation",
+      "example": "E-commerce order: inventory, payment, shipping methodologies",
+      "coordination": "Event-driven with compensation for failures"
+    },
+    "peer_to_peer": {
+      "description": "Methodologies communicate directly via Facts",
+      "example": "CI methodology triggers CD methodology on success",
+      "coordination": "Fact published by one, consumed by another"
+    }
+  },
+
+  "dependency_types": {
+    "requires": {
+      "description": "Methodology A cannot run without B completing first",
+      "example": "Deploy requires Build to complete"
+    },
+    "triggers": {
+      "description": "Methodology A triggers B to start",
+      "example": "PR merged triggers CI methodology"
+    },
+    "extends": {
+      "description": "Methodology A adds capabilities to B",
+      "example": "Custom QA extends standard QA with security scans"
+    }
+  },
+
+  "shared_entity_patterns": {
+    "single_owner": {
+      "description": "One methodology owns, others read-only",
+      "example": "Build owns Artifact, Deploy reads it"
+    },
+    "collaborative": {
+      "description": "Multiple methodologies update different fields",
+      "example": "Multiple teams update Release entity"
+    },
+    "eventual_consistency": {
+      "description": "Entities synced asynchronously",
+      "example": "Local methodology entities sync to central registry"
+    }
+  },
+
+  "scheduling": {
+    "frequency": "on_demand",
+    "trigger": "new methodology needs integration OR existing integration broken"
+  }
+}

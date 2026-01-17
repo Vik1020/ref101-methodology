@@ -1,0 +1,119 @@
+{
+  "process_id": "methodology_roi_calculation",
+  "version": "1.0.0",
+  "name": "Methodology ROI Calculation",
+  "type": "business_analytics",
+  "group": "EFFECTIVENESS",
+  "description": "Calculate Return on Investment for methodology: time saved, error reduction, cost savings. Compares before/after adoption or vs manual processes.",
+
+  "phases": [
+    {
+      "id": "INIT",
+      "type": "Initial",
+      "description": "Define ROI calculation scope and baseline"
+    },
+    {
+      "id": "ESTABLISH_BASELINE",
+      "type": "Working",
+      "description": "Determine baseline: manual process time, error rates, costs before methodology",
+      "validators": ["baseline_established"]
+    },
+    {
+      "id": "COLLECT_COSTS",
+      "type": "Working",
+      "description": "Calculate methodology costs: development, training, tooling, maintenance",
+      "validators": ["costs_collected"]
+    },
+    {
+      "id": "COLLECT_BENEFITS",
+      "type": "Working",
+      "description": "Calculate benefits: time saved, errors prevented, quality improvements",
+      "validators": ["benefits_collected"]
+    },
+    {
+      "id": "CALCULATE_ROI",
+      "type": "Working",
+      "description": "ROI = (Benefits - Costs) / Costs × 100%",
+      "validators": ["roi_calculated"]
+    },
+    {
+      "id": "GENERATE_REPORT",
+      "type": "Working",
+      "description": "Create executive ROI report with business metrics",
+      "validators": ["report_generated"]
+    },
+    {
+      "id": "COMPLETE",
+      "type": "Terminal",
+      "outputs": ["roi_report.md"]
+    }
+  ],
+
+  "artifacts": [
+    {
+      "id": "roi_report",
+      "name": "roi/{methodology_id}/{period}.md",
+      "schema": {
+        "methodology_id": "string",
+        "calculation_period": "string",
+        "baseline": {
+          "avg_cycle_time": "number (hours)",
+          "error_rate": "number (%)",
+          "manual_effort": "number (hours/release)"
+        },
+        "current_state": {
+          "avg_cycle_time": "number (hours)",
+          "error_rate": "number (%)",
+          "automated_effort": "number (hours/release)"
+        },
+        "costs": {
+          "development": "number ($)",
+          "training": "number ($)",
+          "tooling": "number ($)",
+          "maintenance": "number ($/month)",
+          "total": "number ($)"
+        },
+        "benefits": {
+          "time_saved": "number (hours)",
+          "error_reduction": "number (% decrease)",
+          "cost_savings": "number ($)",
+          "quality_improvement": "string",
+          "total": "number ($)"
+        },
+        "roi": {
+          "percentage": "number (%)",
+          "payback_period": "number (months)",
+          "npv": "number ($)",
+          "interpretation": "positive | negative | break_even"
+        }
+      }
+    }
+  ],
+
+  "cost_categories": {
+    "development": "Initial methodology design and implementation",
+    "training": "Team training and onboarding",
+    "tooling": "Software licenses, infrastructure, MCP servers",
+    "maintenance": "Ongoing updates, support, improvements"
+  },
+
+  "benefit_categories": {
+    "time_savings": {
+      "formula": "(baseline_time - current_time) × releases × hourly_rate",
+      "metrics": ["cycle_time", "manual_steps_eliminated"]
+    },
+    "error_reduction": {
+      "formula": "(baseline_errors - current_errors) × cost_per_error",
+      "metrics": ["error_rate", "rework_hours"]
+    },
+    "quality_improvement": {
+      "formula": "subjective or customer_satisfaction_delta",
+      "metrics": ["validation_coverage", "test_coverage"]
+    }
+  },
+
+  "scheduling": {
+    "frequency": "quarterly",
+    "trigger": "business review OR budget planning OR on-demand"
+  }
+}
