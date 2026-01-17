@@ -691,9 +691,9 @@ IC_security_input_sanitization
 
 ## Связанные документы
 
-- [meta/GLOSSARY.md](../../meta/GLOSSARY.md) - Базовые элементы мета-методологии
-- [INDEX.md](../../core/INDEX.md) - Навигация по документации
-- [SYSTEM_PROMPT.md](../../core/SYSTEM_PROMPT.md) - Главная инструкция
+- [meta/GLOSSARY.md](../meta/GLOSSARY.md) - Базовые элементы мета-методологии
+- [SYSTEM_PROMPT.md](core/SYSTEM_PROMPT.md) - Главная инструкция
+- [WORKFLOW.md](core/WORKFLOW.md) - Спецификация workflow
 
 ---
 

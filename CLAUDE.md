@@ -1,19 +1,19 @@
 # ref101-methodology
 
-> Read `core/SYSTEM_PROMPT.md` before any work.
+> Read `namespaces/sccu/core/SYSTEM_PROMPT.md` before any work.
 
 ## Structure
 
-- `core/` - Essential methodology specs (always read)
-- `namespaces/` - Available methodologies (sccu, etc.)
-- `guides/` - Optional learning materials
-  - `guides/standards/` - Development standards (deployment, testing, development)
+- `namespaces/` - Available methodologies
+  - `sccu/` - SCCU methodology (core, guides, skills, processes)
+  - `meta/` - Meta-methodology
+  - `node-hub/` - Node validation
 - `tools/` - CLI utilities
 
 ## Quick Start
 
-1. Read `core/SYSTEM_PROMPT.md`
-2. Choose namespace: `namespaces/sccu/`
+1. Read `namespaces/sccu/core/SYSTEM_PROMPT.md`
+2. Explore `namespaces/sccu/guides/` for detailed documentation
 3. Use skills from `namespaces/sccu/skills/`
 
 ## For New Projects
@@ -51,6 +51,8 @@ Self-Contained Context Unit methodology with 8-phase workflow:
 RELEASE -> BC_DELTA -> AC_DELTA -> PLAN_FINALIZE -> PC_CONTEXT -> IC -> QA_TESTING -> DEPLOYED
 
 Key files:
+- `namespaces/sccu/core/` - System prompt, workflow spec, quick reference
+- `namespaces/sccu/guides/` - Documentation (standards, methodology, installation)
 - `namespaces/sccu/templates/phases/` - Phase templates
 - `namespaces/sccu/processes/` - Process definitions
 - `namespaces/sccu/skills/` - Claude Code skills

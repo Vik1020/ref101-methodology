@@ -11,6 +11,17 @@ description: |
   - Living Documentation: Delta-based updates to domain files
   - Workflow Enforcement: Phase-based development with validators
 
+core:
+  system_prompt: core/SYSTEM_PROMPT.md
+  workflow: core/WORKFLOW.md
+  quick_reference: core/QUICK_REFERENCE.md
+
+guides:
+  - workflow/
+  - standards/
+  - methodology/
+  - installation/
+
 phases:
   - RELEASE
   - BC_DELTA
