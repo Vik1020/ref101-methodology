@@ -4,8 +4,9 @@ import YAML from 'yaml';
 import { getProjectRoot, namespaceExists, getAvailableNamespaces } from '../lib/parser.js';
 import type { Methodology } from '../lib/types.js';
 
-type DiagramFormat = 'mermaid' | 'plantuml';
+type DiagramFormat = 'mermaid' | 'plantuml' | 'drawio';
 type DiagramType = 'state' | 'actors' | 'artifacts' | 'processes';
+type DiagramLevel = 'overview' | 'detail' | 'full';
 
 // Process ordering by lifecycle
 const PROCESS_ORDER: Record<string, string[]> = {
@@ -19,6 +20,8 @@ interface ProcessPhase {
   type?: string;
   approval?: { required: boolean; role: string };
   on_failure?: string;
+  validators?: string[];
+  template?: string;
 }
 
 interface ProcessDefinition {
@@ -31,6 +34,7 @@ interface VisualizeOptions {
   format?: DiagramFormat;
   type?: DiagramType;
   output?: string;
+  level?: DiagramLevel;
 }
 
 export async function visualizeCommand(namespace: string, options: VisualizeOptions): Promise<void> {
@@ -81,13 +85,16 @@ export async function visualizeCommand(namespace: string, options: VisualizeOpti
 
   // Generate diagram based on format and type
   let output: string;
+  const level = options.level || 'full';
 
   if (format === 'mermaid') {
     output = generateMermaid(methodology, diagramType, namespace);
   } else if (format === 'plantuml') {
     output = generatePlantUML(methodology, diagramType);
+  } else if (format === 'drawio') {
+    output = generateDrawio(namespace, diagramType, level);
   } else {
-    console.error(`Error: Unknown format '${format}'. Supported: mermaid, plantuml`);
+    console.error(`Error: Unknown format '${format}'. Supported: mermaid, plantuml, drawio`);
     process.exit(1);
   }
 
@@ -99,15 +106,24 @@ export async function visualizeCommand(namespace: string, options: VisualizeOpti
     }
     writeFileSync(options.output, output, 'utf-8');
     console.log(`\nDiagram written to: ${options.output}`);
+    if (format === 'drawio') {
+      console.log('Open with: https://app.diagrams.net/ or VS Code Draw.io extension');
+    }
   } else {
-    const formatName = format === 'mermaid' ? 'Mermaid' : 'PlantUML';
-    console.log(`\n--- ${formatName} Diagram (${diagramType}) ---\n`);
+    const formatNames: Record<DiagramFormat, string> = {
+      mermaid: 'Mermaid',
+      plantuml: 'PlantUML',
+      drawio: 'Draw.io XML',
+    };
+    console.log(`\n--- ${formatNames[format]} Diagram (${diagramType}) ---\n`);
     console.log(output);
     console.log('\n--- End Diagram ---');
     if (format === 'mermaid') {
       console.log('\nTip: Copy to https://mermaid.live to visualize');
-    } else {
+    } else if (format === 'plantuml') {
       console.log('\nTip: Copy to https://www.plantuml.com/plantuml to visualize');
+    } else if (format === 'drawio') {
+      console.log('\nTip: Save as .drawio file and open with https://app.diagrams.net/');
     }
   }
 }
@@ -619,4 +635,438 @@ function generatePlantUMLArtifactDiagram(m: Methodology): string {
   lines.push('@enduml');
 
   return lines.join('\n');
+}
+
+// ============== DRAW.IO GENERATORS ==============
+
+// Layout constants
+const DRAWIO_LAYOUT = {
+  PHASE_WIDTH: 100,
+  PHASE_HEIGHT: 50,
+  PHASE_GAP: 50,
+  SWIMLANE_PADDING: 20,
+  SWIMLANE_HEADER: 30,
+  SWIMLANE_GAP: 30,
+  ERROR_OFFSET_Y: 80,
+  VALIDATORS_OFFSET_Y: 40,
+};
+
+// Style definitions
+const DRAWIO_STYLES = {
+  initial: 'ellipse;whiteSpace=wrap;html=1;fillColor=#90EE90;strokeColor=#2d7f2d;fontColor=#000000;',
+  working: 'rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#333333;fontColor=#000000;',
+  approval: 'rounded=1;whiteSpace=wrap;html=1;fillColor=#FFD700;strokeColor=#B8860B;fontColor=#000000;',
+  terminal: 'ellipse;whiteSpace=wrap;html=1;fillColor=#87CEEB;strokeColor=#4682B4;fontColor=#000000;',
+  error: 'ellipse;whiteSpace=wrap;html=1;fillColor=#FA8072;strokeColor=#DC143C;fontColor=#000000;',
+  transition: 'edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#333333;',
+  errorTransition: 'edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;strokeColor=#DC143C;',
+  swimlane: 'swimlane;startSize=30;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontStyle=1;',
+  note: 'shape=note;whiteSpace=wrap;html=1;fillColor=#FFFFCC;strokeColor=#CCCC00;fontSize=10;align=left;',
+};
+
+interface DrawioCell {
+  id: string;
+  value: string;
+  style: string;
+  vertex?: boolean;
+  edge?: boolean;
+  parent: string;
+  source?: string;
+  target?: string;
+  geometry: { x: number; y: number; width: number; height: number; relative?: boolean };
+  link?: string;
+}
+
+interface DrawioPage {
+  id: string;
+  name: string;
+  cells: DrawioCell[];
+}
+
+function generateDrawio(namespace: string, type: DiagramType, level: DiagramLevel): string {
+  if (type !== 'processes') {
+    return '<!-- Draw.io export currently only supports --type processes -->';
+  }
+
+  const pages: DrawioPage[] = [];
+
+  // Load processes
+  const processes = loadProcessDefinitions(namespace);
+  if (processes.length === 0) {
+    return `<!-- No processes found for namespace: ${namespace} -->`;
+  }
+
+  // Generate overview page
+  if (level !== 'detail') {
+    pages.push(generateDrawioOverviewPage(namespace, processes));
+  }
+
+  // Generate detail pages
+  if (level !== 'overview') {
+    for (const process of processes) {
+      pages.push(generateDrawioDetailPage(process));
+    }
+  }
+
+  return wrapDrawioFile(pages);
+}
+
+function loadProcessDefinitions(namespace: string): ProcessDefinition[] {
+  const processesDir = join(getProjectRoot(), 'namespaces', namespace, 'processes');
+
+  if (!existsSync(processesDir)) {
+    return [];
+  }
+
+  const processFiles = readdirSync(processesDir).filter(f => f.endsWith('.json'));
+
+  const processes: ProcessDefinition[] = processFiles
+    .map(f => {
+      const content = readFileSync(join(processesDir, f), 'utf-8');
+      return JSON.parse(content) as ProcessDefinition;
+    })
+    .filter(p => p.process_id);
+
+  // Sort by lifecycle order
+  const order = PROCESS_ORDER[namespace] || processes.map(p => p.process_id);
+  processes.sort((a, b) => {
+    const aIdx = order.indexOf(a.process_id);
+    const bIdx = order.indexOf(b.process_id);
+    return (aIdx === -1 ? 999 : aIdx) - (bIdx === -1 ? 999 : bIdx);
+  });
+
+  return processes;
+}
+
+function generateDrawioOverviewPage(namespace: string, processes: ProcessDefinition[]): DrawioPage {
+  const cells: DrawioCell[] = [];
+  let cellIdCounter = 2; // 0 and 1 are reserved for root cells
+  let currentY = 20;
+
+  for (let pIdx = 0; pIdx < processes.length; pIdx++) {
+    const process = processes[pIdx];
+    const mainPhases = process.phases.filter(p => p.type !== 'Error');
+    const errorPhase = process.phases.find(p => p.type === 'Error');
+
+    // Calculate swimlane dimensions
+    const swimlaneWidth = (mainPhases.length * (DRAWIO_LAYOUT.PHASE_WIDTH + DRAWIO_LAYOUT.PHASE_GAP)) + DRAWIO_LAYOUT.SWIMLANE_PADDING * 2;
+    const swimlaneHeight = DRAWIO_LAYOUT.SWIMLANE_HEADER + DRAWIO_LAYOUT.PHASE_HEIGHT + DRAWIO_LAYOUT.SWIMLANE_PADDING * 2 +
+      (errorPhase ? DRAWIO_LAYOUT.ERROR_OFFSET_Y : 0);
+
+    const swimlaneId = `swimlane_${pIdx}`;
+
+    // Swimlane container with link to detail page
+    cells.push({
+      id: swimlaneId,
+      value: `${pIdx + 1}. ${process.name}`,
+      style: DRAWIO_STYLES.swimlane,
+      vertex: true,
+      parent: '1',
+      geometry: { x: 20, y: currentY, width: swimlaneWidth, height: swimlaneHeight },
+      link: `data:page/id,${process.process_id}`,
+    });
+
+    // Phase nodes
+    const phaseNodes: Map<string, string> = new Map();
+    let phaseX = DRAWIO_LAYOUT.SWIMLANE_PADDING;
+    const phaseY = DRAWIO_LAYOUT.SWIMLANE_HEADER + DRAWIO_LAYOUT.SWIMLANE_PADDING;
+
+    for (let i = 0; i < mainPhases.length; i++) {
+      const phase = mainPhases[i];
+      const nodeId = `node_${cellIdCounter++}`;
+      phaseNodes.set(phase.id, nodeId);
+
+      // Infer type from position if not specified
+      const inferredType = phase.type || (i === 0 ? 'Initial' : i === mainPhases.length - 1 ? 'Terminal' : 'Working');
+      const style = getDrawioPhaseStyle(inferredType, phase.approval?.required);
+
+      cells.push({
+        id: nodeId,
+        value: phase.id,
+        style: style,
+        vertex: true,
+        parent: swimlaneId,
+        geometry: { x: phaseX, y: phaseY, width: DRAWIO_LAYOUT.PHASE_WIDTH, height: DRAWIO_LAYOUT.PHASE_HEIGHT },
+      });
+
+      phaseX += DRAWIO_LAYOUT.PHASE_WIDTH + DRAWIO_LAYOUT.PHASE_GAP;
+    }
+
+    // Error phase
+    let errorNodeId: string | null = null;
+    if (errorPhase) {
+      errorNodeId = `node_${cellIdCounter++}`;
+      phaseNodes.set(errorPhase.id, errorNodeId);
+
+      const errorX = swimlaneWidth - DRAWIO_LAYOUT.SWIMLANE_PADDING - DRAWIO_LAYOUT.PHASE_WIDTH;
+      const errorY = phaseY + DRAWIO_LAYOUT.ERROR_OFFSET_Y;
+
+      cells.push({
+        id: errorNodeId,
+        value: errorPhase.id,
+        style: DRAWIO_STYLES.error,
+        vertex: true,
+        parent: swimlaneId,
+        geometry: { x: errorX, y: errorY, width: DRAWIO_LAYOUT.PHASE_WIDTH, height: DRAWIO_LAYOUT.PHASE_HEIGHT },
+      });
+    }
+
+    // Transitions between main phases
+    for (let i = 0; i < mainPhases.length - 1; i++) {
+      const sourceId = phaseNodes.get(mainPhases[i].id)!;
+      const targetId = phaseNodes.get(mainPhases[i + 1].id)!;
+      const edgeId = `edge_${cellIdCounter++}`;
+
+      cells.push({
+        id: edgeId,
+        value: '',
+        style: DRAWIO_STYLES.transition,
+        edge: true,
+        parent: swimlaneId,
+        source: sourceId,
+        target: targetId,
+        geometry: { x: 0, y: 0, width: 0, height: 0, relative: true },
+      });
+    }
+
+    // Error transitions
+    if (errorNodeId) {
+      for (const phase of process.phases) {
+        if (phase.on_failure && phaseNodes.has(phase.id)) {
+          const sourceId = phaseNodes.get(phase.id)!;
+          const edgeId = `edge_${cellIdCounter++}`;
+
+          cells.push({
+            id: edgeId,
+            value: '',
+            style: DRAWIO_STYLES.errorTransition,
+            edge: true,
+            parent: swimlaneId,
+            source: sourceId,
+            target: errorNodeId,
+            geometry: { x: 0, y: 0, width: 0, height: 0, relative: true },
+          });
+        }
+      }
+    }
+
+    currentY += swimlaneHeight + DRAWIO_LAYOUT.SWIMLANE_GAP;
+  }
+
+  return {
+    id: 'overview',
+    name: `Overview - ${namespace}`,
+    cells,
+  };
+}
+
+function generateDrawioDetailPage(process: ProcessDefinition): DrawioPage {
+  const cells: DrawioCell[] = [];
+  let cellIdCounter = 2;
+
+  const mainPhases = process.phases.filter(p => p.type !== 'Error');
+  const errorPhase = process.phases.find(p => p.type === 'Error');
+
+  // Phase nodes
+  const phaseNodes: Map<string, string> = new Map();
+  let phaseX = 50;
+  const phaseY = 50;
+
+  for (let i = 0; i < mainPhases.length; i++) {
+    const phase = mainPhases[i];
+    const nodeId = `node_${cellIdCounter++}`;
+    phaseNodes.set(phase.id, nodeId);
+
+    const inferredType = phase.type || (i === 0 ? 'Initial' : i === mainPhases.length - 1 ? 'Terminal' : 'Working');
+    const style = getDrawioPhaseStyle(inferredType, phase.approval?.required);
+
+    cells.push({
+      id: nodeId,
+      value: phase.id,
+      style: style,
+      vertex: true,
+      parent: '1',
+      geometry: { x: phaseX, y: phaseY, width: DRAWIO_LAYOUT.PHASE_WIDTH, height: DRAWIO_LAYOUT.PHASE_HEIGHT },
+    });
+
+    // Add validators note below phase
+    if (phase.validators && phase.validators.length > 0) {
+      const noteId = `note_${cellIdCounter++}`;
+      const validatorsText = phase.validators.join('\\n');
+
+      cells.push({
+        id: noteId,
+        value: validatorsText,
+        style: DRAWIO_STYLES.note,
+        vertex: true,
+        parent: '1',
+        geometry: {
+          x: phaseX - 10,
+          y: phaseY + DRAWIO_LAYOUT.PHASE_HEIGHT + 10,
+          width: DRAWIO_LAYOUT.PHASE_WIDTH + 20,
+          height: 15 + phase.validators.length * 12,
+        },
+      });
+    }
+
+    // Add approval annotation
+    if (phase.approval?.required) {
+      const approvalId = `approval_${cellIdCounter++}`;
+      cells.push({
+        id: approvalId,
+        value: `Approval: ${phase.approval.role}`,
+        style: 'text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=9;fontColor=#B8860B;',
+        vertex: true,
+        parent: '1',
+        geometry: { x: phaseX, y: phaseY - 15, width: DRAWIO_LAYOUT.PHASE_WIDTH, height: 15 },
+      });
+    }
+
+    phaseX += DRAWIO_LAYOUT.PHASE_WIDTH + DRAWIO_LAYOUT.PHASE_GAP + 30; // Extra space for validators
+  }
+
+  // Error phase
+  let errorNodeId: string | null = null;
+  if (errorPhase) {
+    errorNodeId = `node_${cellIdCounter++}`;
+    phaseNodes.set(errorPhase.id, errorNodeId);
+
+    const errorX = phaseX - DRAWIO_LAYOUT.PHASE_WIDTH - DRAWIO_LAYOUT.PHASE_GAP;
+    const errorY = phaseY + DRAWIO_LAYOUT.ERROR_OFFSET_Y + 50;
+
+    cells.push({
+      id: errorNodeId,
+      value: errorPhase.id,
+      style: DRAWIO_STYLES.error,
+      vertex: true,
+      parent: '1',
+      geometry: { x: errorX, y: errorY, width: DRAWIO_LAYOUT.PHASE_WIDTH, height: DRAWIO_LAYOUT.PHASE_HEIGHT },
+    });
+  }
+
+  // Transitions between main phases
+  for (let i = 0; i < mainPhases.length - 1; i++) {
+    const sourceId = phaseNodes.get(mainPhases[i].id)!;
+    const targetId = phaseNodes.get(mainPhases[i + 1].id)!;
+    const edgeId = `edge_${cellIdCounter++}`;
+
+    cells.push({
+      id: edgeId,
+      value: '',
+      style: DRAWIO_STYLES.transition,
+      edge: true,
+      parent: '1',
+      source: sourceId,
+      target: targetId,
+      geometry: { x: 0, y: 0, width: 0, height: 0, relative: true },
+    });
+  }
+
+  // Error transitions
+  if (errorNodeId) {
+    for (const phase of process.phases) {
+      if (phase.on_failure && phaseNodes.has(phase.id)) {
+        const sourceId = phaseNodes.get(phase.id)!;
+        const edgeId = `edge_${cellIdCounter++}`;
+
+        cells.push({
+          id: edgeId,
+          value: 'on_failure',
+          style: DRAWIO_STYLES.errorTransition,
+          edge: true,
+          parent: '1',
+          source: sourceId,
+          target: errorNodeId,
+          geometry: { x: 0, y: 0, width: 0, height: 0, relative: true },
+        });
+      }
+    }
+  }
+
+  // Title
+  cells.push({
+    id: `title_${cellIdCounter++}`,
+    value: `<b>${process.name}</b>`,
+    style: 'text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=16;',
+    vertex: true,
+    parent: '1',
+    geometry: { x: 50, y: 10, width: 400, height: 30 },
+  });
+
+  return {
+    id: process.process_id,
+    name: process.name,
+    cells,
+  };
+}
+
+function getDrawioPhaseStyle(type: string, hasApproval?: boolean): string {
+  if (hasApproval) return DRAWIO_STYLES.approval;
+
+  switch (type) {
+    case 'Initial':
+      return DRAWIO_STYLES.initial;
+    case 'Terminal':
+      return DRAWIO_STYLES.terminal;
+    case 'Error':
+      return DRAWIO_STYLES.error;
+    default:
+      return DRAWIO_STYLES.working;
+  }
+}
+
+function cellToXml(cell: DrawioCell): string {
+  const attrs: string[] = [
+    `id="${cell.id}"`,
+    `value="${escapeXml(cell.value)}"`,
+    `style="${cell.style}"`,
+  ];
+
+  if (cell.vertex) attrs.push('vertex="1"');
+  if (cell.edge) attrs.push('edge="1"');
+  attrs.push(`parent="${cell.parent}"`);
+  if (cell.source) attrs.push(`source="${cell.source}"`);
+  if (cell.target) attrs.push(`target="${cell.target}"`);
+
+  const geo = cell.geometry;
+  const geoAttrs = cell.geometry.relative
+    ? 'relative="1"'
+    : `x="${geo.x}" y="${geo.y}" width="${geo.width}" height="${geo.height}"`;
+
+  let linkAttr = '';
+  if (cell.link) {
+    linkAttr = ` link="${escapeXml(cell.link)}"`;
+  }
+
+  return `        <mxCell ${attrs.join(' ')}${linkAttr}>
+          <mxGeometry ${geoAttrs} as="geometry"/>
+        </mxCell>`;
+}
+
+function escapeXml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+}
+
+function wrapDrawioFile(pages: DrawioPage[]): string {
+  const diagrams = pages.map(page => {
+    const cellsXml = page.cells.map(cellToXml).join('\n');
+    return `  <diagram name="${escapeXml(page.name)}" id="${page.id}">
+    <mxGraphModel dx="1000" dy="600" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="850">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+${cellsXml}
+      </root>
+    </mxGraphModel>
+  </diagram>`;
+  });
+
+  return `<mxfile host="ref101-meta" modified="${new Date().toISOString()}" version="1.0" type="device">
+${diagrams.join('\n')}
+</mxfile>`;
 }
