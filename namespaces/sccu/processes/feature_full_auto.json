@@ -16,7 +16,7 @@
       ]
     },
     {
-      "id": "BC_DELTA",
+      "id": "BC_delta",
       "skip_allowed": false,
       "template": "BC_DELTA_TEMPLATE.md",
       "validators": [
@@ -26,7 +26,7 @@
       ]
     },
     {
-      "id": "AC_DELTA",
+      "id": "AC_delta",
       "skip_allowed": false,
       "template": "AC_DELTA_TEMPLATE.md",
       "validators": [

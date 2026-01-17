@@ -223,6 +223,19 @@ $defs:
       output_schema:
         type: object
         description: "JSON Schema выходных данных"
+      circuit_breaker:
+        type: object
+        description: "Защита от каскадных сбоев (Spec 7.5)"
+        properties:
+          failure_threshold:
+            type: integer
+            description: "Количество ошибок до размыкания"
+          timeout:
+            type: string
+            description: "Таймаут вызова"
+          half_open_after:
+            type: string
+            description: "Время до пробного вызова"
 
   # === ACTION ===
   Action:
@@ -296,6 +309,17 @@ $defs:
         items:
           type: string
         description: "Список id Artifacts, привязанных к сущности"
+      current_state:
+        type: string
+        description: "id текущего State (Spec 4.5: Entity always in one State)"
+      history:
+        type: array
+        items:
+          type: string
+        description: "Append-only список id Facts (Spec 4.5)"
+      version:
+        type: string
+        description: "Версия данных Entity"
 
   # === ARTIFACT ===
   Artifact:
@@ -320,6 +344,9 @@ $defs:
       entity_id:
         type: string
         description: "id Entity, к которой привязан артефакт"
+      version:
+        type: string
+        description: "Версия артефакта (Spec 4.6: независимо от Entity)"
 
   # === FACT ===
   Fact:
@@ -346,6 +373,17 @@ $defs:
         items:
           type: string
         description: "Список id Facts, которые должны произойти до этого"
+      # Runtime attributes (Spec 4.7)
+      timestamp:
+        type: string
+        format: date-time
+        description: "Когда произошло событие (заполняется в runtime)"
+      actor:
+        type: string
+        description: "id Actor, который вызвал событие (заполняется в runtime)"
+      entity_id:
+        type: string
+        description: "id Entity, которую затронуло событие (заполняется в runtime)"
       payload:
         type: object
         description: "Дополнительные данные события"

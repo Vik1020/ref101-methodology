@@ -240,6 +240,11 @@ tools:
       artifact_path: "string (optional)"
       state: "object (optional)"
       error: "string (optional)"
+    # Spec 7.5: Circuit breaker for external tool
+    circuit_breaker:
+      failure_threshold: 5
+      timeout: "30s"
+      half_open_after: "60s"
     operations:
       - "pcc_init_release"
       - "pcc_create_artifact"
@@ -462,6 +467,11 @@ actions:
       - "ERROR"
     output:
       fact: "error_handled"
+    # Spec 7.3: Retry for actions with external calls
+    retry:
+      max_attempts: 3
+      delay: "exponential"
+      on_exhausted: "escalate"
   - id: "retry_phase"
     name: "Retry Phase"
     actor: "claude_agent"
@@ -471,8 +481,14 @@ actions:
       - "ERROR"
     output:
       fact: "phase_retried"
+    # Spec 7.3: Retry for actions with external calls
+    retry:
+      max_attempts: 3
+      delay: "exponential"
+      on_exhausted: "escalate"
 
 # === ARTIFACTS (Files/documents created) ===
+# Spec 4.6: Artifacts have version independent of Entity
 artifacts:
   - id: "release_artifact"
     name: "RELEASE.md"
@@ -480,44 +496,53 @@ artifacts:
     template: "templates/phases/RELEASE_TEMPLATE.md"
     created_by: "create_release"
     entity_id: "release"
+    version: "1.0.0"
   - id: "pc_artifact"
     name: "PC_CONTEXT.md"
     type: "markdown"
     template: "templates/phases/PC_CONTEXT_TEMPLATE.md"
     created_by: "create_pc"
     entity_id: "release"
+    version: "1.0.0"
   - id: "ic_artifact"
     name: "IC.md"
     type: "markdown"
     template: "templates/phases/IC_TEMPLATE.md"
     created_by: "create_ic"
     entity_id: "release"
+    version: "1.0.0"
   - id: "qa_artifact"
     name: "QA_TESTING.md"
     type: "markdown"
     template: "templates/phases/QA_TESTING_TEMPLATE.md"
     created_by: "create_qa"
     entity_id: "release"
+    version: "1.0.0"
   - id: "bc_delta_artifact"
     name: "BC_DELTA.md"
     type: "markdown"
     template: "templates/phases/BC_DELTA_TEMPLATE.md"
     created_by: "create_bc_delta"
     entity_id: "release"
+    version: "1.0.0"
   - id: "ac_delta_artifact"
     name: "AC_DELTA.md"
     type: "markdown"
     template: "templates/phases/AC_DELTA_TEMPLATE.md"
     created_by: "create_ac_delta"
     entity_id: "release"
+    version: "1.0.0"
   - id: "plan_finalize_artifact"
     name: "PLAN_FINALIZE.md"
     type: "markdown"
     template: "templates/phases/PLAN_FINALIZE_TEMPLATE.md"
     created_by: "create_plan_finalize"
     entity_id: "release"
+    version: "1.0.0"
 
 # === FACTS (Events triggering transitions) ===
+# Spec 4.7: Facts include runtime attributes (timestamp, actor, entity_id, payload)
+# These are populated by PCC at execution time
 facts:
   # === Transitions for bugfix_simple process: RELEASE → PC → IC → QA → DEPLOY ===
   - id: "release_to_pc"
@@ -525,21 +550,38 @@ facts:
     from_state: "RELEASE"
     to_state: "PC"
     triggered_by: "create_release"
+    # Runtime attributes (populated at execution):
+    timestamp: null
+    actor: null
+    entity_id: null
+    payload: {}
   - id: "pc_completed"
     name: "PC Completed"
     from_state: "PC"
     to_state: "IC"
     triggered_by: "create_pc"
+    timestamp: null
+    actor: null
+    entity_id: null
+    payload: {}
   - id: "ic_completed"
     name: "IC Completed"
     from_state: "IC"
     to_state: "QA"
     triggered_by: "create_ic"
+    timestamp: null
+    actor: null
+    entity_id: null
+    payload: {}
   - id: "qa_completed"
     name: "QA Completed"
     from_state: "QA"
     to_state: "DEPLOY"
     triggered_by: "create_qa"
+    timestamp: null
+    actor: null
+    entity_id: null
+    payload: {}
 
   # === Transitions for feature_full process: RELEASE → BC_DELTA → AC_DELTA → ... ===
   - id: "release_to_bc"
@@ -547,31 +589,55 @@ facts:
     from_state: "RELEASE"
     to_state: "BC_DELTA"
     triggered_by: "create_release"
+    timestamp: null
+    actor: null
+    entity_id: null
+    payload: {}
   - id: "bc_delta_completed"
     name: "BC Delta Completed"
     from_state: "BC_DELTA"
     to_state: "AC_DELTA"
     triggered_by: "create_bc_delta"
+    timestamp: null
+    actor: null
+    entity_id: null
+    payload: {}
   - id: "ac_delta_completed"
     name: "AC Delta Completed"
     from_state: "AC_DELTA"
     to_state: "PLAN_FINALIZE"
     triggered_by: "create_ac_delta"
+    timestamp: null
+    actor: null
+    entity_id: null
+    payload: {}
   - id: "plan_finalize_completed"
     name: "Plan Finalize Completed"
     from_state: "PLAN_FINALIZE"
     to_state: "PC"
     triggered_by: "create_plan_finalize"
+    timestamp: null
+    actor: null
+    entity_id: null
+    payload: {}
   - id: "qa_to_apply_deltas"
     name: "Transitioned to Apply Deltas (feature)"
     from_state: "QA"
     to_state: "APPLY_DELTAS"
     triggered_by: "create_qa"
+    timestamp: null
+    actor: null
+    entity_id: null
+    payload: {}
   - id: "apply_deltas_completed"
     name: "Apply Deltas Completed"
     from_state: "APPLY_DELTAS"
     to_state: "DEPLOY"
     triggered_by: "create_apply_deltas"
+    timestamp: null
+    actor: null
+    entity_id: null
+    payload: {}
 
   # === Approval facts (requires artifact creation first) ===
   - id: "qa_approved"
@@ -581,6 +647,10 @@ facts:
     triggered_by: "approve_qa"
     requires:
       - "qa_completed"
+    timestamp: null
+    actor: null
+    entity_id: null
+    payload: {}
   - id: "bc_delta_approved"
     name: "BC Delta Approved"
     from_state: "BC_DELTA"
@@ -588,6 +658,10 @@ facts:
     triggered_by: "approve_bc_delta"
     requires:
       - "bc_delta_completed"
+    timestamp: null
+    actor: null
+    entity_id: null
+    payload: {}
   - id: "ac_delta_approved"
     name: "AC Delta Approved"
     from_state: "AC_DELTA"
@@ -595,6 +669,10 @@ facts:
     triggered_by: "approve_ac_delta"
     requires:
       - "ac_delta_completed"
+    timestamp: null
+    actor: null
+    entity_id: null
+    payload: {}
   - id: "plan_finalize_approved"
     name: "Plan Finalize Approved"
     from_state: "PLAN_FINALIZE"
@@ -602,6 +680,10 @@ facts:
     triggered_by: "approve_plan_finalize"
     requires:
       - "plan_finalize_completed"
+    timestamp: null
+    actor: null
+    entity_id: null
+    payload: {}
 
   # === Error handling facts ===
   # Error can occur from any Working/Waiting state
@@ -610,42 +692,74 @@ facts:
     from_state: "PC"
     to_state: "ERROR"
     triggered_by: "handle_error"
+    timestamp: null
+    actor: null
+    entity_id: null
+    payload: {}
   - id: "error_from_ic"
     name: "Failed at IC"
     from_state: "IC"
     to_state: "ERROR"
     triggered_by: "handle_error"
+    timestamp: null
+    actor: null
+    entity_id: null
+    payload: {}
   - id: "error_from_qa"
     name: "Failed at QA"
     from_state: "QA"
     to_state: "ERROR"
     triggered_by: "handle_error"
+    timestamp: null
+    actor: null
+    entity_id: null
+    payload: {}
   - id: "error_from_bc_delta"
     name: "Failed at BC Delta"
     from_state: "BC_DELTA"
     to_state: "ERROR"
     triggered_by: "handle_error"
+    timestamp: null
+    actor: null
+    entity_id: null
+    payload: {}
   - id: "error_from_ac_delta"
     name: "Failed at AC Delta"
     from_state: "AC_DELTA"
     to_state: "ERROR"
     triggered_by: "handle_error"
+    timestamp: null
+    actor: null
+    entity_id: null
+    payload: {}
   - id: "error_from_plan_finalize"
     name: "Failed at Plan Finalize"
     from_state: "PLAN_FINALIZE"
     to_state: "ERROR"
     triggered_by: "handle_error"
+    timestamp: null
+    actor: null
+    entity_id: null
+    payload: {}
   - id: "error_from_apply_deltas"
     name: "Failed at Apply Deltas"
     from_state: "APPLY_DELTAS"
     to_state: "ERROR"
     triggered_by: "handle_error"
+    timestamp: null
+    actor: null
+    entity_id: null
+    payload: {}
   # Recovery from error - retry returns to PC (can be customized per error)
   - id: "retry_to_pc"
     name: "Retried to PC"
     from_state: "ERROR"
     to_state: "PC"
     triggered_by: "retry_phase"
+    timestamp: null
+    actor: null
+    entity_id: null
+    payload: {}
 
 # === RULES (Constraints and conditions) ===
 rules:

@@ -34,6 +34,15 @@ export interface Tool {
   type: ToolType;
   compatible_actors?: ActorType[];
   operations?: string[];
+  // Spec 4.3: input/output schemas
+  input_schema?: Record<string, string>;
+  output_schema?: Record<string, string>;
+  // Spec 7.5: Circuit breaker for external tools
+  circuit_breaker?: {
+    failure_threshold: number;
+    timeout: string;
+    half_open_after: string;
+  };
 }
 
 export interface Action {
@@ -57,6 +66,10 @@ export interface Entity {
   role?: 'primary' | 'secondary';
   schema?: Record<string, unknown>;
   artifacts?: string[];
+  // Spec 4.5: Instance-level fields
+  current_state?: string;  // Entity always in exactly one State
+  history?: string[];      // Append-only fact_ids
+  version?: string;        // Entity version (separate from artifacts)
 }
 
 export interface Artifact {
@@ -66,15 +79,22 @@ export interface Artifact {
   template?: string;
   created_by?: string;
   entity_id?: string;
+  // Spec 4.6: Versioning independent of Entity
+  version?: string;
 }
 
 export interface Fact {
   id: string;
-  name: string;
+  name: string;  // Must be past tense per Spec 4.7
   from_state?: string;
   to_state?: string;
-  triggered_by?: string;
+  triggered_by?: string;  // Spec: caused_by
   requires?: string[];
+  // Spec 4.7: Runtime attributes (populated at execution)
+  timestamp?: string;     // datetime when fact occurred
+  actor?: string;         // actor_id who triggered
+  entity_id?: string;     // which Entity affected
+  payload?: Record<string, unknown>;  // additional event data
 }
 
 export interface Rule {
