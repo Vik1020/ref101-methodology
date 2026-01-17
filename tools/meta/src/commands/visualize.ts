@@ -662,6 +662,8 @@ const DRAWIO_STYLES = {
   errorTransition: 'edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;strokeColor=#DC143C;',
   swimlane: 'swimlane;startSize=30;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontStyle=1;',
   note: 'shape=note;whiteSpace=wrap;html=1;fillColor=#FFFFCC;strokeColor=#CCCC00;fontSize=10;align=left;',
+  actionCard: 'rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F4EA;strokeColor=#4A7C59;fontSize=9;align=left;verticalAlign=top;spacing=5;',
+  legend: 'rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF9E6;strokeColor=#D4A017;fontSize=10;align=left;verticalAlign=top;spacing=8;',
 };
 
 interface DrawioCell {
@@ -696,6 +698,14 @@ function generateDrawio(namespace: string, type: DiagramType, level: DiagramLeve
     return `<!-- No processes found for namespace: ${namespace} -->`;
   }
 
+  // Load methodology.yaml for detail pages
+  const methodologyPath = join(getProjectRoot(), 'namespaces', namespace, 'methodology.yaml');
+  let methodology: Methodology | null = null;
+  if (existsSync(methodologyPath)) {
+    const content = readFileSync(methodologyPath, 'utf-8');
+    methodology = YAML.parse(content) as Methodology;
+  }
+
   // Generate overview page
   if (level !== 'detail') {
     pages.push(generateDrawioOverviewPage(namespace, processes));
@@ -704,7 +714,7 @@ function generateDrawio(namespace: string, type: DiagramType, level: DiagramLeve
   // Generate detail pages
   if (level !== 'overview') {
     for (const process of processes) {
-      pages.push(generateDrawioDetailPage(process));
+      pages.push(generateDrawioDetailPage(process, methodology));
     }
   }
 
@@ -860,17 +870,37 @@ function generateDrawioOverviewPage(namespace: string, processes: ProcessDefinit
   };
 }
 
-function generateDrawioDetailPage(process: ProcessDefinition): DrawioPage {
+function generateDrawioDetailPage(process: ProcessDefinition, methodology: Methodology | null): DrawioPage {
   const cells: DrawioCell[] = [];
   let cellIdCounter = 2;
 
   const mainPhases = process.phases.filter(p => p.type !== 'Error');
   const errorPhase = process.phases.find(p => p.type === 'Error');
 
+  // Build map of phase.id → actions from methodology
+  type ActionType = NonNullable<Methodology['actions']>[0];
+  const actionsForPhase = new Map<string, ActionType[]>();
+  const usedActorIds = new Set<string>();
+  const usedToolIds = new Set<string>();
+
+  if (methodology?.actions) {
+    for (const action of methodology.actions) {
+      for (const stateId of action.allowed_in_states || []) {
+        if (!actionsForPhase.has(stateId)) {
+          actionsForPhase.set(stateId, []);
+        }
+        actionsForPhase.get(stateId)!.push(action);
+      }
+    }
+  }
+
   // Phase nodes
   const phaseNodes: Map<string, string> = new Map();
+  const phaseActions: Map<string, ActionType> = new Map(); // For fact lookup
   let phaseX = 50;
-  const phaseY = 50;
+  const phaseY = 60;
+  const ACTION_CARD_HEIGHT = 55;
+  const PHASE_SPACING = DRAWIO_LAYOUT.PHASE_WIDTH + DRAWIO_LAYOUT.PHASE_GAP + 40;
 
   for (let i = 0; i < mainPhases.length; i++) {
     const phase = mainPhases[i];
@@ -889,10 +919,51 @@ function generateDrawioDetailPage(process: ProcessDefinition): DrawioPage {
       geometry: { x: phaseX, y: phaseY, width: DRAWIO_LAYOUT.PHASE_WIDTH, height: DRAWIO_LAYOUT.PHASE_HEIGHT },
     });
 
-    // Add validators note below phase
-    if (phase.validators && phase.validators.length > 0) {
+    // Add approval annotation above phase
+    if (phase.approval?.required) {
+      const approvalId = `approval_${cellIdCounter++}`;
+      cells.push({
+        id: approvalId,
+        value: `Approval: ${phase.approval.role}`,
+        style: 'text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=9;fontColor=#B8860B;',
+        vertex: true,
+        parent: '1',
+        geometry: { x: phaseX, y: phaseY - 18, width: DRAWIO_LAYOUT.PHASE_WIDTH, height: 15 },
+      });
+    }
+
+    // Add Action card below phase (if methodology has actions for this phase)
+    const actions = actionsForPhase.get(phase.id) || [];
+    if (actions.length > 0 && methodology) {
+      const action = actions[0];
+      phaseActions.set(phase.id, action);
+
+      const actor = methodology.actors?.find(a => a.id === action.actor);
+      const tool = methodology.tools?.find(t => t.id === action.tool);
+
+      if (actor) usedActorIds.add(actor.id);
+      if (tool) usedToolIds.add(tool.id);
+
+      const actorIcon = actor?.type === 'AI' ? '🤖' : actor?.type === 'Human' ? '👤' : '⚙️';
+      const cardContent = `<b>${action.name || action.id}</b>&lt;br/&gt;${actorIcon} ${actor?.name || action.actor}&lt;br/&gt;🔧 ${tool?.name || action.tool}`;
+
+      cells.push({
+        id: `action_${cellIdCounter++}`,
+        value: cardContent,
+        style: DRAWIO_STYLES.actionCard,
+        vertex: true,
+        parent: '1',
+        geometry: {
+          x: phaseX - 10,
+          y: phaseY + DRAWIO_LAYOUT.PHASE_HEIGHT + 12,
+          width: DRAWIO_LAYOUT.PHASE_WIDTH + 20,
+          height: ACTION_CARD_HEIGHT,
+        },
+      });
+    } else if (phase.validators && phase.validators.length > 0) {
+      // Fallback: show validators if no actions
       const noteId = `note_${cellIdCounter++}`;
-      const validatorsText = phase.validators.join('\\n');
+      const validatorsText = phase.validators.slice(0, 3).join('\\n');
 
       cells.push({
         id: noteId,
@@ -902,27 +973,14 @@ function generateDrawioDetailPage(process: ProcessDefinition): DrawioPage {
         parent: '1',
         geometry: {
           x: phaseX - 10,
-          y: phaseY + DRAWIO_LAYOUT.PHASE_HEIGHT + 10,
+          y: phaseY + DRAWIO_LAYOUT.PHASE_HEIGHT + 12,
           width: DRAWIO_LAYOUT.PHASE_WIDTH + 20,
-          height: 15 + phase.validators.length * 12,
+          height: 15 + Math.min(phase.validators.length, 3) * 12,
         },
       });
     }
 
-    // Add approval annotation
-    if (phase.approval?.required) {
-      const approvalId = `approval_${cellIdCounter++}`;
-      cells.push({
-        id: approvalId,
-        value: `Approval: ${phase.approval.role}`,
-        style: 'text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=9;fontColor=#B8860B;',
-        vertex: true,
-        parent: '1',
-        geometry: { x: phaseX, y: phaseY - 15, width: DRAWIO_LAYOUT.PHASE_WIDTH, height: 15 },
-      });
-    }
-
-    phaseX += DRAWIO_LAYOUT.PHASE_WIDTH + DRAWIO_LAYOUT.PHASE_GAP + 30; // Extra space for validators
+    phaseX += PHASE_SPACING;
   }
 
   // Error phase
@@ -931,8 +989,8 @@ function generateDrawioDetailPage(process: ProcessDefinition): DrawioPage {
     errorNodeId = `node_${cellIdCounter++}`;
     phaseNodes.set(errorPhase.id, errorNodeId);
 
-    const errorX = phaseX - DRAWIO_LAYOUT.PHASE_WIDTH - DRAWIO_LAYOUT.PHASE_GAP;
-    const errorY = phaseY + DRAWIO_LAYOUT.ERROR_OFFSET_Y + 50;
+    const errorX = phaseX - PHASE_SPACING;
+    const errorY = phaseY + DRAWIO_LAYOUT.ERROR_OFFSET_Y + ACTION_CARD_HEIGHT + 20;
 
     cells.push({
       id: errorNodeId,
@@ -944,15 +1002,24 @@ function generateDrawioDetailPage(process: ProcessDefinition): DrawioPage {
     });
   }
 
-  // Transitions between main phases
+  // Transitions between main phases with Fact labels
   for (let i = 0; i < mainPhases.length - 1; i++) {
     const sourceId = phaseNodes.get(mainPhases[i].id)!;
     const targetId = phaseNodes.get(mainPhases[i + 1].id)!;
     const edgeId = `edge_${cellIdCounter++}`;
 
+    // Find fact name from action output
+    let factLabel = '';
+    const action = phaseActions.get(mainPhases[i].id);
+    if (action?.output && typeof action.output === 'object' && action.output.fact && methodology?.facts) {
+      const factId = action.output.fact;
+      const fact = methodology.facts.find(f => f.id === factId);
+      factLabel = fact?.name || factId;
+    }
+
     cells.push({
       id: edgeId,
-      value: '',
+      value: factLabel,
       style: DRAWIO_STYLES.transition,
       edge: true,
       parent: '1',
@@ -992,6 +1059,27 @@ function generateDrawioDetailPage(process: ProcessDefinition): DrawioPage {
     parent: '1',
     geometry: { x: 50, y: 10, width: 400, height: 30 },
   });
+
+  // Legend at bottom
+  if (methodology && (usedActorIds.size > 0 || usedToolIds.size > 0)) {
+    const actors = methodology.actors?.filter(a => usedActorIds.has(a.id)) || [];
+    const tools = methodology.tools?.filter(t => usedToolIds.has(t.id)) || [];
+
+    const actorLine = actors.map(a => `${a.type === 'AI' ? '🤖' : '👤'} ${a.name}`).join(', ');
+    const toolLine = tools.map(t => `🔧 ${t.name}`).join(', ');
+
+    const legendY = phaseY + DRAWIO_LAYOUT.PHASE_HEIGHT + ACTION_CARD_HEIGHT + (errorPhase ? DRAWIO_LAYOUT.ERROR_OFFSET_Y + 80 : 40);
+    const legendContent = `<b>Actors:</b> ${actorLine}&lt;br/&gt;<b>Tools:</b> ${toolLine}`;
+
+    cells.push({
+      id: `legend_${cellIdCounter++}`,
+      value: legendContent,
+      style: DRAWIO_STYLES.legend,
+      vertex: true,
+      parent: '1',
+      geometry: { x: 50, y: legendY, width: Math.max(400, phaseX - 100), height: 45 },
+    });
+  }
 
   return {
     id: process.process_id,
